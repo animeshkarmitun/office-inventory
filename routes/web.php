@@ -117,3 +117,5 @@ Route::middleware(['auth', 'role:employee'])->group(function () {
     Route::get('/employee/dashboard', [DashboardController::class, 'employeeDashboard'])->name('employee.dashboard');
     // Add more employee-only routes here
 });
+
+Route::get('/depreciation-report', [ItemController::class, 'depreciationReport'])->name('depreciation.report');

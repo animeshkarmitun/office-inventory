@@ -56,6 +56,18 @@
                         <input type="number" step="0.01" name="depreciation_cost" class="form-control" id="depreciation_cost">
                     </div>
                     <div class="mb-3">
+                        <label for="depreciation_method" class="form-label">Depreciation Method</label>
+                        <select name="depreciation_method" class="form-select" id="depreciation_method">
+                            <option value="">-- Select Method --</option>
+                            <option value="straight_line">Straight Line</option>
+                            <option value="reducing_balance">Reducing Balance</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="depreciation_rate" class="form-label">Depreciation Rate (%)</label>
+                        <input type="number" step="0.01" name="depreciation_rate" class="form-control" id="depreciation_rate">
+                    </div>
+                    <div class="mb-3">
                         <label for="status" class="form-label">Status</label>
                         <select name="status" class="form-select" id="status" required>
                             <option value="available">Available</option>

@@ -103,8 +103,8 @@ class ItemController extends Controller
         $item = Item::find($id);
         $categories = Category::all();
         $suppliers = Supplier::all();
-
-        return view('pages.item.edit', compact('item', 'categories', 'suppliers'));
+        $users = \App\Models\User::all();
+        return view('pages.item.edit', compact('item', 'categories', 'suppliers', 'users'));
     }
 
     public function update(Request $request, $id)
@@ -158,5 +158,11 @@ class ItemController extends Controller
 
         return redirect()->route('item')
             ->with(['message' => 'Item is already approved', 'alert' => 'alert-warning']);
+    }
+
+    public function depreciationReport()
+    {
+        $items = Item::with(['assignedUser', 'approvedBy'])->get();
+        return view('pages.item.depreciation-report', compact('items'));
     }
 }

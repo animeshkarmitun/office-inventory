@@ -28,6 +28,8 @@ class Item extends Model
         'asset_type',
         'value',
         'depreciation_cost',
+        'depreciation_method',
+        'depreciation_rate',
         'purchased_by',
         'supplier_id',
         'purchase_date',
@@ -47,6 +49,7 @@ class Item extends Model
         'approved_at' => 'datetime',
         'value' => 'decimal:2',
         'depreciation_cost' => 'decimal:2',
+        'depreciation_rate' => 'decimal:2',
         'is_approved' => 'boolean'
     ];
 
@@ -88,5 +91,49 @@ class Item extends Model
     public function approvedBy()
     {
         return $this->belongsTo(User::class, 'approved_by');
+    }
+
+    /**
+     * Calculate annual depreciation based on method.
+     */
+    public function annualDepreciation()
+    {
+        if (!$this->value || !$this->depreciation_method || !$this->depreciation_rate) {
+            return null;
+        }
+        if ($this->depreciation_method === 'straight_line') {
+            // Assume useful life is 5 years, residual value is 0
+            $usefulLife = 5;
+            $residualValue = 0;
+            return ($this->value - $residualValue) / $usefulLife;
+        } elseif ($this->depreciation_method === 'reducing_balance') {
+            // Depreciation rate is a percentage (e.g., 20 for 20%)
+            return $this->value * ($this->depreciation_rate / 100);
+        }
+        return null;
+    }
+
+    /**
+     * Calculate current book value after depreciation for each year since purchase.
+     */
+    public function currentBookValue()
+    {
+        if (!$this->value || !$this->depreciation_method || !$this->depreciation_rate || !$this->purchase_date) {
+            return null;
+        }
+        $years = now()->diffInYears($this->purchase_date);
+        $bookValue = $this->value;
+        if ($this->depreciation_method === 'straight_line') {
+            $annual = $this->annualDepreciation();
+            $bookValue -= $annual * $years;
+            return max($bookValue, 0);
+        } elseif ($this->depreciation_method === 'reducing_balance') {
+            $rate = 1 - ($this->depreciation_rate / 100);
+            for ($i = 0; $i < $years; $i++) {
+                $bookValue *= $rate;
+            }
+            return max($bookValue, 0);
+        }
+        return null;
     }
 }

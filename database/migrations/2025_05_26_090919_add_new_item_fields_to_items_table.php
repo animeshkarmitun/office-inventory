@@ -30,6 +30,12 @@ class AddNewItemFieldsToItemsTable extends Migration
             if (!Schema::hasColumn('items', 'depreciation_cost')) {
                 $table->decimal('depreciation_cost', 10, 2)->nullable();
             }
+            if (!Schema::hasColumn('items', 'depreciation_method')) {
+                $table->string('depreciation_method')->nullable();
+            }
+            if (!Schema::hasColumn('items', 'depreciation_rate')) {
+                $table->decimal('depreciation_rate', 5, 2)->nullable();
+            }
             
             // Purchase Information
             if (!Schema::hasColumn('items', 'purchased_by')) {
@@ -110,6 +116,8 @@ class AddNewItemFieldsToItemsTable extends Migration
                 'asset_type',
                 'value',
                 'depreciation_cost',
+                'depreciation_method',
+                'depreciation_rate',
                 'purchased_by',
                 'supplier_id',
                 'purchase_date',

@@ -1,0 +1,308 @@
+/* Color Palette */
+:root {
+    --primary: #2563eb;
+    --primary-dark: #1d4ed8;
+    --secondary: #64748b;
+    --accent: #f59e42;
+    --success: #22c55e;
+    --danger: #ef4444;
+    --warning: #facc15;
+    --info: #38bdf8;
+    --table-header-bg: #f3f6fb;
+    --table-row-alt: #f8fafc;
+    --table-row-hover: #e0e7ef;
+    --btn-primary-bg: linear-gradient(90deg, #2563eb 0%, #1e40af 100%);
+    --btn-primary-hover: linear-gradient(90deg, #1d4ed8 0%, #1e3a8a 100%);
+    --btn-secondary-bg: linear-gradient(90deg, #64748b 0%, #334155 100%);
+    --btn-secondary-hover: linear-gradient(90deg, #475569 0%, #1e293b 100%);
+    --btn-success-bg: linear-gradient(90deg, #22c55e 0%, #16a34a 100%);
+    --btn-success-hover: linear-gradient(90deg, #16a34a 0%, #15803d 100%);
+    --btn-danger-bg: linear-gradient(90deg, #ef4444 0%, #b91c1c 100%);
+    --btn-danger-hover: linear-gradient(90deg, #dc2626 0%, #991b1b 100%);
+    --btn-warning-bg: linear-gradient(90deg, #facc15 0%, #eab308 100%);
+    --btn-warning-hover: linear-gradient(90deg, #eab308 0%, #ca8a04 100%);
+    --btn-info-bg: linear-gradient(90deg, #38bdf8 0%, #0ea5e9 100%);
+    --btn-info-hover: linear-gradient(90deg, #0ea5e9 0%, #0369a1 100%);
+}
+
+/* Typography improvements */
+body {
+    font-family: 'Roboto', Arial, sans-serif;
+    color: #222;
+    background-color: #f8f9fa;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    margin-bottom: 1rem;
+    color: var(--primary);
+}
+
+h1 {
+    font-size: 2.5rem;
+}
+h2 {
+    font-size: 2rem;
+}
+h3 {
+    font-size: 1.5rem;
+}
+
+p, label, input, button, th, td {
+    font-size: 1.05rem;
+    font-weight: 400;
+}
+
+/* Section spacing */
+section, .container, .mb-4, .py-4 {
+    margin-bottom: 2rem !important;
+}
+
+/* Table improvements */
+table {
+    border-collapse: separate;
+    border-spacing: 0;
+    background: #fff;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+    margin-bottom: 2rem;
+}
+thead {
+    background: #23272b !important;
+}
+thead th {
+    background: #23272b !important;
+    color: #fff !important;
+    font-weight: 700;
+    border: none !important;
+    vertical-align: middle;
+}
+tbody tr:nth-child(even) {
+    background: var(--table-row-alt);
+}
+tbody tr:nth-child(odd) {
+    background: #fff;
+}
+tbody tr {
+    border-bottom: 1px solid #e9ecef;
+}
+th, td {
+    padding-top: 1.1rem !important;
+    padding-bottom: 1.1rem !important;
+    vertical-align: middle;
+    border-right: 1px solid #f1f3f6;
+}
+th:last-child, td:last-child {
+    border-right: none;
+}
+
+/* Consistent vertical alignment for all table header and body cells */
+.table th, .table td, th, td {
+    vertical-align: middle !important;
+}
+
+/* Subtle vertical separator between table columns */
+.table th, .table td, th, td {
+    border-right: 1px solid #e3e6ea;
+}
+.table th:last-child, .table td:last-child, th:last-child, td:last-child {
+    border-right: none;
+}
+
+/* Button improvements */
+.btn {
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(37, 99, 235, 0.07);
+    transition: box-shadow 0.2s, background 0.2s, border 0.2s;
+}
+.btn:active {
+    filter: brightness(0.95);
+    box-shadow: 0 1px 2px rgba(37, 99, 235, 0.12);
+    transform: translateY(1px);
+}
+.btn:hover, .btn:focus {
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.13);
+    filter: brightness(0.97);
+}
+.btn-primary {
+    background: var(--btn-primary-bg) !important;
+    border: none;
+    color: #fff !important;
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.10);
+}
+.btn-primary:hover, .btn-primary:focus {
+    background: var(--btn-primary-hover) !important;
+    color: #fff !important;
+    box-shadow: 0 4px 16px rgba(37, 99, 235, 0.13);
+}
+.btn-secondary {
+    background: var(--btn-secondary-bg) !important;
+    border: none;
+    color: #fff !important;
+    box-shadow: 0 2px 8px rgba(100, 116, 139, 0.10);
+}
+.btn-secondary:hover, .btn-secondary:focus {
+    background: var(--btn-secondary-hover) !important;
+    color: #fff !important;
+    box-shadow: 0 4px 16px rgba(100, 116, 139, 0.13);
+}
+.btn-warning {
+    background: var(--btn-warning-bg) !important;
+    border: none;
+    color: #fff !important;
+    box-shadow: 0 2px 8px rgba(250, 204, 21, 0.10);
+}
+.btn-warning:hover, .btn-warning:focus {
+    background: var(--btn-warning-hover) !important;
+    color: #fff !important;
+    box-shadow: 0 4px 16px rgba(250, 204, 21, 0.13);
+}
+.btn-success {
+    background: var(--btn-success-bg) !important;
+    border: none;
+    color: #fff !important;
+    box-shadow: 0 2px 8px rgba(34, 197, 94, 0.10);
+}
+.btn-success:hover, .btn-success:focus {
+    background: var(--btn-success-hover) !important;
+    color: #fff !important;
+    box-shadow: 0 4px 16px rgba(34, 197, 94, 0.13);
+}
+.btn-danger {
+    background: var(--btn-danger-bg) !important;
+    border: none;
+    color: #fff !important;
+    box-shadow: 0 2px 8px rgba(239, 68, 68, 0.10);
+}
+.btn-danger:hover, .btn-danger:focus {
+    background: var(--btn-danger-hover) !important;
+    color: #fff !important;
+    box-shadow: 0 4px 16px rgba(239, 68, 68, 0.13);
+}
+.btn-info {
+    background: var(--btn-info-bg) !important;
+    border: none;
+    color: #fff !important;
+    box-shadow: 0 2px 8px rgba(56, 189, 248, 0.10);
+}
+.btn-info:hover, .btn-info:focus {
+    background: var(--btn-info-hover) !important;
+    color: #fff !important;
+    box-shadow: 0 4px 16px rgba(56, 189, 248, 0.13);
+}
+
+/* Form improvements */
+input.form-control {
+    border-radius: 6px;
+    padding: 0.75rem 1rem;
+    font-size: 1.1rem;
+}
+
+/* Navbar improvements */
+.navbar {
+    font-size: 1.1rem;
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+    margin-bottom: 2rem;
+    border-bottom: 2px solid var(--primary);
+}
+
+/* Misc */
+.mt-3, .mb-4 {
+    margin-top: 1.5rem !important;
+    margin-bottom: 1.5rem !important;
+}
+
+/* Accent color for highlights */
+.accent {
+    color: var(--accent);
+}
+
+/* Alerts, badges, and status */
+.badge-warning, .status-pending {
+    background: var(--warning);
+    color: #fff;
+}
+.badge-success, .status-approved {
+    background: var(--success);
+    color: #fff;
+}
+.badge-danger, .status-rejected {
+    background: var(--danger);
+    color: #fff;
+}
+
+/* Links */
+a {
+    color: var(--primary);
+    text-decoration: none;
+    transition: color 0.2s;
+}
+a:hover, a:focus {
+    color: var(--primary-dark);
+    text-decoration: underline;
+}
+
+/* Table row spacing */
+tbody tr {
+    height: 60px;
+    padding-top: 0.75rem;
+    padding-bottom: 0.75rem;
+}
+
+/* Badge styles for status/approval */
+.badge {
+    font-size: 1rem;
+    padding: 0.5em 1em;
+    border-radius: 0.5em;
+    font-weight: 500;
+}
+
+/* Dropdown actions spacing */
+.dropdown-menu .dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+    padding: 0.5em 1.2em;
+}
+
+/* Responsive table */
+@media (max-width: 768px) {
+    table {
+        font-size: 0.95rem;
+    }
+    th, td {
+        padding: 0.5rem 0.5rem;
+    }
+    .dropdown-menu .dropdown-item {
+        font-size: 1rem;
+    }
+}
+
+/* Action icons */
+.dropdown-item i.bi {
+    font-size: 1.1em;
+    margin-right: 0.5em;
+    vertical-align: middle;
+}
+
+/* Enforce dark table header style for all tables, overriding Bootstrap */
+.table thead th, .table thead {
+    background: #23272b !important;
+    color: #fff !important;
+    font-weight: 700;
+    border: none !important;
+    vertical-align: middle;
+}
+
+/* Dashed vertical separator for table header columns and center-align header text */
+.table thead th, thead th {
+    border-right: 2px dashed #bfc4c9 !important;
+    text-align: center !important;
+    vertical-align: middle;
+}
+.table thead th:last-child, thead th:last-child {
+    border-right: none !important;
+}

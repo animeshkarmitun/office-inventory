@@ -13,7 +13,7 @@
                 <div class="col-md-6">
                     <h3>Basic Information</h3>
                     <div class="mb-3">
-                        <label for="name" class="form-label">Item Name</label>
+                        <label for="name" class="form-label">Item Name <span class="text-danger">*</span></label>
                         <input type="text" name="name" class="form-control" id="name" value="{{ $item->name }}" required>
                     </div>
                     <div class="mb-3">
@@ -41,7 +41,7 @@
                 <div class="col-md-6">
                     <h3>Asset Details</h3>
                     <div class="mb-3">
-                        <label for="asset_type" class="form-label">Asset Type</label>
+                        <label for="asset_type" class="form-label">Asset Type <span class="text-danger">*</span></label>
                         <select name="asset_type" class="form-select" id="asset_type" required>
                             <option value="fixed" {{ $item->asset_type === 'fixed' ? 'selected' : '' }}>Fixed Asset</option>
                             <option value="current" {{ $item->asset_type === 'current' ? 'selected' : '' }}>Current Asset</option>
@@ -56,7 +56,19 @@
                         <input type="number" step="0.01" name="depreciation_cost" class="form-control" id="depreciation_cost" value="{{ $item->depreciation_cost }}">
                     </div>
                     <div class="mb-3">
-                        <label for="status" class="form-label">Status</label>
+                        <label for="depreciation_method" class="form-label">Depreciation Method</label>
+                        <select name="depreciation_method" class="form-select" id="depreciation_method">
+                            <option value="">-- Select Method --</option>
+                            <option value="straight_line" {{ ($item->depreciation_method === 'straight_line' || !$item->depreciation_method) ? 'selected' : '' }}>Straight Line</option>
+                            <option value="reducing_balance" {{ $item->depreciation_method === 'reducing_balance' ? 'selected' : '' }}>Reducing Balance</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="depreciation_rate" class="form-label">Depreciation Rate (%)</label>
+                        <input type="number" step="0.01" name="depreciation_rate" class="form-control" id="depreciation_rate" value="{{ $item->depreciation_rate }}">
+                    </div>
+                    <div class="mb-3">
+                        <label for="status" class="form-label">Status <span class="text-danger">*</span></label>
                         <select name="status" class="form-select" id="status" required>
                             <option value="available" {{ $item->status === 'available' ? 'selected' : '' }}>Available</option>
                             <option value="in_use" {{ $item->status === 'in_use' ? 'selected' : '' }}>In Use</option>
@@ -107,11 +119,11 @@
                 <div class="col-md-6">
                     <h3>Location Information</h3>
                     <div class="mb-3">
-                        <label for="floor_level" class="form-label">Floor Level</label>
+                        <label for="floor_level" class="form-label">Floor Level <span class="text-danger">*</span></label>
                         <input type="text" name="floor_level" class="form-control" id="floor_level" value="{{ $item->floor_level }}" required>
                     </div>
                     <div class="mb-3">
-                        <label for="room_number" class="form-label">Room Number</label>
+                        <label for="room_number" class="form-label">Room Number <span class="text-danger">*</span></label>
                         <input type="text" name="room_number" class="form-control" id="room_number" value="{{ $item->room_number }}" required>
                     </div>
                     <div class="mb-3">
