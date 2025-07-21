@@ -40,7 +40,10 @@ class Item extends Model
         'room_number',
         'is_approved',
         'approved_by',
-        'approved_at'
+        'approved_at',
+        'tracking_mode',
+        'quantity',
+        'image'
     ];
 
     protected $casts = [

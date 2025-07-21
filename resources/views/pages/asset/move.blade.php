@@ -3,7 +3,7 @@
 @section('content')
 @include('inc.alert')
 <div class="container">
-    <h1 class="text-decoration-underline">Move Asset: {{ $item->name }}</h1>
+    <h1 class="text-decoration-underline">Move Asset: {{ $item ? $item->name : 'N/A' }}</h1>
     <a href="{{ route('item') }}" class="btn btn-secondary mt-3">Back to Assets</a>
 
     <div class="border border-dark mt-3 p-3">

@@ -1,0 +1,165 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\Purchase;
+use App\Models\PurchaseItem;
+use Illuminate\Http\Request;
+
+class PurchaseController extends Controller
+{
+    public function index()
+    {
+        $purchases = \App\Models\Purchase::with('supplier')->orderBy('purchase_date', 'desc')->get();
+        return view('pages.purchase.index', compact('purchases'));
+    }
+
+    public function create()
+    {
+        $suppliers = \App\Models\Supplier::all();
+        return view('pages.purchase.add', compact('suppliers'));
+    }
+
+    public function store(Request $request)
+    {
+        $request->validate([
+            'supplier_id' => 'required|exists:suppliers,id',
+            'invoice_number' => 'required|string|max:255',
+            'invoice_image' => 'nullable|file|mimes:webp,jpeg,png,pdf|max:4096',
+            'purchase_date' => 'required|date',
+            'items' => 'required|array|min:1',
+            'items.*.item_name' => 'required|string|max:255',
+            'items.*.quantity' => 'required|integer|min:1',
+            'items.*.unit_price' => 'required|numeric|min:0',
+            'items.*.item_type' => 'nullable|string|max:255',
+        ]);
+
+        // Handle invoice image upload
+        $invoiceImagePath = null;
+        if ($request->hasFile('invoice_image')) {
+            $file = $request->file('invoice_image');
+            $filename = 'invoices/' . uniqid('invoice_') . '.' . $file->getClientOriginalExtension();
+            $file->storeAs('public', $filename);
+            $invoiceImagePath = $filename;
+        }
+
+        // Calculate total value
+        $totalValue = collect($request->items)->sum(function($item) {
+            return $item['quantity'] * $item['unit_price'];
+        });
+
+        // Create purchase
+        $purchase = \App\Models\Purchase::create([
+            'supplier_id' => $request->supplier_id,
+            'invoice_number' => $request->invoice_number,
+            'invoice_image' => $invoiceImagePath,
+            'purchase_date' => $request->purchase_date,
+            'total_value' => $totalValue,
+        ]);
+
+        // Create purchase items and inventory items
+        foreach ($request->items as $itemData) {
+            $purchaseItem = $purchase->items()->create($itemData);
+            // Auto-create inventory items
+            for ($i = 0; $i < $itemData['quantity']; $i++) {
+                \App\Models\Item::create([
+                    'name' => $itemData['item_name'],
+                    'asset_type' => $itemData['item_type'] ?? null,
+                    'status' => 'available',
+                    'value' => $itemData['unit_price'],
+                    'purchase_date' => $request->purchase_date,
+                    'supplier_id' => $request->supplier_id,
+                    'tracking_mode' => 'individual',
+                    'quantity' => 1,
+                    'serial_number' => 'AUTO-' . strtoupper(uniqid()) . '-' . ($i+1),
+                    'asset_tag' => 'AUTO-' . strtoupper(uniqid()) . '-' . ($i+1),
+                ]);
+            }
+        }
+
+        return redirect()->route('purchase.add')->with(['message' => 'Purchase and items added successfully!', 'alert' => 'alert-success']);
+    }
+
+    public function show($id)
+    {
+        $purchase = \App\Models\Purchase::with(['supplier', 'items'])->findOrFail($id);
+        return view('pages.purchase.show', compact('purchase'));
+    }
+
+    public function edit($id)
+    {
+        $purchase = \App\Models\Purchase::with(['supplier', 'items'])->findOrFail($id);
+        $suppliers = \App\Models\Supplier::all();
+        return view('pages.purchase.edit', compact('purchase', 'suppliers'));
+    }
+
+    public function update(Request $request, $id)
+    {
+        $purchase = \App\Models\Purchase::with('items')->findOrFail($id);
+        $request->validate([
+            'supplier_id' => 'required|exists:suppliers,id',
+            'invoice_number' => 'required|string|max:255',
+            'invoice_image' => 'nullable|file|mimes:webp,jpeg,png,pdf|max:4096',
+            'purchase_date' => 'required|date',
+            'items' => 'required|array|min:1',
+            'items.*.item_name' => 'required|string|max:255',
+            'items.*.quantity' => 'required|integer|min:1',
+            'items.*.unit_price' => 'required|numeric|min:0',
+            'items.*.item_type' => 'nullable|string|max:255',
+        ]);
+
+        // Handle invoice image upload
+        $invoiceImagePath = $purchase->invoice_image;
+        if ($request->hasFile('invoice_image')) {
+            $file = $request->file('invoice_image');
+            $filename = 'invoices/' . uniqid('invoice_') . '.' . $file->getClientOriginalExtension();
+            $file->storeAs('public', $filename);
+            $invoiceImagePath = $filename;
+        }
+
+        // Calculate total value
+        $totalValue = collect($request->items)->sum(function($item) {
+            return $item['quantity'] * $item['unit_price'];
+        });
+
+        // Update purchase
+        $purchase->update([
+            'supplier_id' => $request->supplier_id,
+            'invoice_number' => $request->invoice_number,
+            'invoice_image' => $invoiceImagePath,
+            'purchase_date' => $request->purchase_date,
+            'total_value' => $totalValue,
+        ]);
+
+        // Delete old purchase items and inventory items (optional: only if you want to fully replace)
+        $purchase->items()->delete();
+        // Optionally, delete inventory items linked to this purchase (if you have such a link)
+
+        // Create new purchase items and inventory items
+        foreach ($request->items as $itemData) {
+            $purchaseItem = $purchase->items()->create($itemData);
+            // Auto-create inventory items
+            for ($i = 0; $i < $itemData['quantity']; $i++) {
+                \App\Models\Item::create([
+                    'name' => $itemData['item_name'],
+                    'asset_type' => $itemData['item_type'] ?? null,
+                    'status' => 'available',
+                    'value' => $itemData['unit_price'],
+                    'purchase_date' => $request->purchase_date,
+                    'supplier_id' => $request->supplier_id,
+                    'tracking_mode' => 'individual',
+                    'quantity' => 1,
+                    'serial_number' => 'AUTO-' . strtoupper(uniqid()) . '-' . ($i+1),
+                    'asset_tag' => 'AUTO-' . strtoupper(uniqid()) . '-' . ($i+1),
+                ]);
+            }
+        }
+
+        return redirect()->route('purchase.show', $purchase->id)->with(['message' => 'Purchase updated successfully!', 'alert' => 'alert-success']);
+    }
+
+    public function destroy($id)
+    {
+        // Delete a purchase
+    }
+} 

@@ -17,6 +17,8 @@ return new class extends Migration
         // 1. Add new ENUM column
         Schema::table('items', function (Blueprint $table) {
             $table->enum('status_new', ['available', 'in_use', 'maintenance', 'not_traceable', 'disposed'])->default('available')->after('status');
+            $table->enum('tracking_mode', ['bulk', 'individual'])->default('individual')->after('id');
+            $table->unsignedInteger('quantity')->nullable()->after('tracking_mode');
         });
 
         // 2. Copy data from old status to new status_new (if possible)
@@ -56,6 +58,11 @@ return new class extends Migration
         // 3. Drop ENUM status column
         Schema::table('items', function (Blueprint $table) {
             $table->dropColumn('status');
+        });
+
+        Schema::table('items', function (Blueprint $table) {
+            $table->dropColumn('tracking_mode');
+            $table->dropColumn('quantity');
         });
     }
 };

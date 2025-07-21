@@ -35,18 +35,11 @@
 
             <div class="mb-3">
                 <label for="item_id" class="form-label">Item</label>
-                <select class="form-select" name="item_id" required>
-                    @if ($items->isEmpty())
-                    <option value="{{ $borrower->item_id }}" selected>{{
-                        $borrower->item->name }}</option>
-                    @else
+                <select class="form-select" name="item_id" id="item_id">
+                    <option value="" {{ is_null($borrower->item_id) ? 'selected' : '' }}>-- No Item --</option>
                     @foreach ($items as $item)
-                    <option value="{{ $item->id }}" {{ $item->id == $borrower->item_id ? 'selected' : ''}} >{{
-                        $item->name }}</option>
+                        <option value="{{ $item->id }}" {{ $item->id == $borrower->item_id ? 'selected' : ''}} >{{ $item->name ?? 'No Name' }}</option>
                     @endforeach
-                    <option value="{{ $borrower->item_id }}" selected>{{
-                        $borrower->item->name }}</option>
-                    @endif
                 </select>
                 @error('item_id')
                 <span class="invalid-feedback" role="alert">
@@ -60,7 +53,7 @@
                 <select class="form-select" name="department_id" required>
                     @foreach ($departments as $department)
                     <option value="{{ $department->id }}" {{ $department->id == $borrower->department_id ? 'selected' :
-                        ''}}>{{ $department->name }}</option>
+                        ''}}>{{ $department->name ?? 'No Name' }}</option>
                     @endforeach
                 </select>
                 @error('department_id')
@@ -89,7 +82,7 @@
 
             <div class="mb-3">
                 <label for="user_id" class="form-label">Authorized By</label>
-                <input type="text" class="form-control" value="{{ $borrower->user->name }}" disabled>
+                <input type="text" class="form-control" value="{{ $borrower->user ? $borrower->user->name : '' }}" disabled>
                 <input type="hidden" name="user_id" value="{{ $borrower->user_id }}">
 
                 @error('user_id')

@@ -7,6 +7,8 @@ use App\Models\Item;
 use App\Models\Supplier;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
+use Intervention\Image\Facades\Image;
 
 class ItemController extends Controller
 {
@@ -60,6 +62,9 @@ class ItemController extends Controller
     public function store(Request $request)
     {
         $request->validate([
+            'tracking_mode' => 'required|in:bulk,individual',
+            'quantity' => 'required_if:tracking_mode,bulk|nullable|integer|min:1',
+            'individual_count' => 'required_if:tracking_mode,individual|nullable|integer|min:1',
             'name' => 'required|string|max:255',
             'serial_number' => 'nullable|string|max:255',
             'asset_tag' => 'nullable|string|max:255',
@@ -81,13 +86,40 @@ class ItemController extends Controller
             'room_number' => 'required|string|max:255',
             'location' => 'nullable|string|max:255',
             'assigned_to' => 'nullable|exists:users,id',
-            'condition' => 'nullable|string|max:255'
+            'condition' => 'nullable|string|max:255',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
         ]);
 
-        $item = Item::create($request->all());
+        $fields = $request->except(['individual_count', '_token', 'image']);
+        $fields['tracking_mode'] = $request->tracking_mode;
+
+        // Handle image upload and compression
+        $imagePath = null;
+        if ($request->hasFile('image')) {
+            $image = $request->file('image');
+            $filename = 'items/' . uniqid('item_') . '.webp';
+            $img = Image::make($image)->encode('webp', 75);
+            Storage::disk('public')->put($filename, $img);
+            $imagePath = $filename;
+        }
+        $fields['image'] = $imagePath;
+
+        if ($request->tracking_mode === 'bulk') {
+            $fields['quantity'] = $request->quantity;
+            Item::create($fields);
+        } else {
+            $count = $request->individual_count ?? 1;
+            for ($i = 0; $i < $count; $i++) {
+                $fields['quantity'] = 1;
+                $fields['serial_number'] = 'COSMOS-SN-' . strtoupper(uniqid()) . '-' . ($i+1);
+                $fields['asset_tag'] = 'COSMOS-AT-' . strtoupper(uniqid()) . '-' . ($i+1);
+                $fields['image'] = $imagePath;
+                Item::create($fields);
+            }
+        }
 
         return redirect()->route('item')
-            ->with(['message' => 'Item added successfully. Waiting for admin approval.', 'alert' => 'alert-success']);
+            ->with(['message' => 'Item(s) added successfully. Waiting for admin approval.', 'alert' => 'alert-success']);
     }
 
     public function destroy($id)

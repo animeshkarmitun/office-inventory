@@ -88,7 +88,7 @@
                         <select name="purchased_by" class="form-select" id="purchased_by">
                             <option value="">-- Select User --</option>
                             @foreach($users as $user)
-                                <option value="{{ $user->id }}" {{ $item->purchased_by === $user->id ? 'selected' : '' }}>{{ $user->name }}</option>
+                                <option value="{{ $user->id }}" {{ $item->purchased_by === $user->id ? 'selected' : '' }}>{{ $user->name ?? 'No Name' }}</option>
                             @endforeach
                         </select>
                     </div>
@@ -97,7 +97,7 @@
                         <select name="supplier_id" class="form-select" id="supplier_id">
                             <option value="">-- Select Supplier --</option>
                             @foreach($suppliers as $supplier)
-                                <option value="{{ $supplier->id }}" {{ $item->supplier_id === $supplier->id ? 'selected' : '' }}>{{ $supplier->name }}</option>
+                                <option value="{{ $supplier->id }}" {{ $supplier->id == $item->supplier_id ? 'selected' : '' }}>{{ $supplier->name ?? 'No Name' }}</option>
                             @endforeach
                         </select>
                     </div>
@@ -110,7 +110,7 @@
                         <select name="received_by" class="form-select" id="received_by">
                             <option value="">-- Select User --</option>
                             @foreach($users as $user)
-                                <option value="{{ $user->id }}" {{ $item->received_by === $user->id ? 'selected' : '' }}>{{ $user->name }}</option>
+                                <option value="{{ $user->id }}" {{ $item->received_by === $user->id ? 'selected' : '' }}>{{ $user->name ?? 'No Name' }}</option>
                             @endforeach
                         </select>
                     </div>
@@ -135,7 +135,7 @@
                         <select name="assigned_to" class="form-select" id="assigned_to">
                             <option value="">-- Select User --</option>
                             @foreach($users as $user)
-                                <option value="{{ $user->id }}" {{ $item->assigned_to === $user->id ? 'selected' : '' }}>{{ $user->name }}</option>
+                                <option value="{{ $user->id }}" {{ $item->assigned_to === $user->id ? 'selected' : '' }}>{{ $user->name ?? 'No Name' }}</option>
                             @endforeach
                         </select>
                     </div>

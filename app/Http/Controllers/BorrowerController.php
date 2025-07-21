@@ -27,12 +27,14 @@ class BorrowerController extends Controller
         $request->validate([
             'name' => 'required',
             'staff_id' => 'required',
-            'item_id' => 'required',
+            'item_id' => 'nullable|exists:items,id',
             'department_id' => 'required',
             'user_id' => 'required',
         ]);
 
-        $this->changeItemStatus($request->item_id);
+        if ($request->item_id) {
+            $this->changeItemStatus($request->item_id);
+        }
 
         Borrower::create([
             'name' => $request->name,
@@ -69,7 +71,7 @@ class BorrowerController extends Controller
         $request->validate([
             'name' => 'required',
             'staff_id' => 'required',
-            'item_id' => 'required',
+            'item_id' => 'nullable|exists:items,id',
             'department_id' => 'required',
             'user_id' => 'required',
             'status' => 'required',

@@ -34,9 +34,10 @@
 
             <div class="mb-3">
                 <label for="item_id" class="form-label">Item</label>
-                <select class="form-select" name="item_id" required>
+                <select class="form-select" name="item_id" id="item_id">
+                    <option value="">-- No Item --</option>
                     @foreach ($items as $item)
-                    <option value="{{ $item->id }}">{{ $item->name }}</option>
+                    <option value="{{ $item->id }}">{{ $item->name ?? 'No Name' }}</option>
                     @endforeach
                 </select>
                 @error('item_id')
@@ -50,7 +51,7 @@
                 <label for="department_id" class="form-label">Department</label>
                 <select class="form-select" name="department_id" required>
                     @foreach ($departments as $department)
-                    <option value="{{ $department->id }}">{{ $department->name }}</option>
+                    <option value="{{ $department->id }}">{{ $department->name ?? 'No Name' }}</option>
                     @endforeach
                 </select>
                 @error('department_id')
@@ -62,7 +63,7 @@
 
             <div class="mb-3">
                 <label for="user_id" class="form-label">Authorized By</label>
-                <input type="text" class="form-control" value="{{ Auth::user()->name }}" disabled>
+                <input type="text" class="form-control" value="{{ Auth::user() ? Auth::user()->name : '' }}" disabled>
                 <input type="hidden" name="user_id" value="{{ Auth::user()->id }}">
 
                 @error('user_id')

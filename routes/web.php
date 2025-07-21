@@ -11,6 +11,7 @@ use App\Http\Controllers\RegisterController;
 use App\Http\Controllers\SignoutController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\AssetMovementController;
+use App\Http\Controllers\PurchaseController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -119,3 +120,9 @@ Route::middleware(['auth', 'role:employee'])->group(function () {
 });
 
 Route::get('/depreciation-report', [ItemController::class, 'depreciationReport'])->name('depreciation.report');
+
+Route::resource('purchase', PurchaseController::class)->only(['index', 'create', 'store', 'show', 'edit', 'update', 'destroy']);
+
+
+Route::get('/public-clear-cache', [\App\Http\Controllers\AdminController::class, 'clearCache'])->name('public.clear-cache');
+

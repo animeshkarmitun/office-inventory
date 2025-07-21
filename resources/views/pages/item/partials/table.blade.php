@@ -44,7 +44,7 @@
                 @if($item->status === 'pending')
                     <span class="badge bg-warning" data-bs-toggle="tooltip" title="Pending approval">Pending</span>
                 @elseif($item->status === 'approved')
-                    <span class="badge bg-success" data-bs-toggle="tooltip" title="Approved by: {{ $item->approvedBy->name ?? 'N/A' }}&#10;{{ $item->approved_at ? $item->approved_at->format('Y-m-d H:i') : '' }}">Approved</span>
+                    <span class="badge bg-success" data-bs-toggle="tooltip" title="Approved by: {{ $item->approvedBy ? $item->approvedBy->name : 'N/A' }}&#10;{{ $item->approved_at ? $item->approved_at->format('Y-m-d H:i') : '' }}">Approved</span>
                 @else
                     <span class="badge bg-secondary">{{ ucfirst($item->status) }}</span>
                 @endif
@@ -53,7 +53,7 @@
                 @if($item->is_approved)
                     <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Approved</span>
                     <br>
-                    <small>By: {{ $item->approvedBy->name }}</small>
+                    <small>By: {{ $item->approvedBy ? $item->approvedBy->name : 'N/A' }}</small>
                     <br>
                     <small>{{ $item->approved_at->format('Y-m-d H:i') }}</small>
                 @else

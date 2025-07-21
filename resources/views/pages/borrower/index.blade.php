@@ -35,9 +35,27 @@
                 </td>
                 <td>{{ $borrower->created_at->format('d-M-Y') }}</td>
                 <td>{{ $borrower->staff_id }}</td>
-                <td>{{ $borrower->item->name }}</td>
-                <td>{{ $borrower->department->name }}</td>
-                <td>{{ $borrower->user->name }}</td>
+                <td>
+                    @if ($borrower->item)
+                        {{ $borrower->item->name }}
+                    @else
+                        <em>No Item</em>
+                    @endif
+                </td>
+                <td>
+                    @if ($borrower->department)
+                        {{ $borrower->department->name }}
+                    @else
+                        <em>No Department</em>
+                    @endif
+                </td>
+                <td>
+                    @if ($borrower->user)
+                        {{ $borrower->user->name }}
+                    @else
+                        <em>No User</em>
+                    @endif
+                </td>
                 <td>
                     <a href="{{ route('borrower.destroy', ['id' => $borrower->id]) }}" class="btn btn-danger">Delete</a>
                     <a href="{{ route('borrower.showEdit', ['id' => $borrower->id]) }}" class="btn btn-warning">Edit</a>

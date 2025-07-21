@@ -6,76 +6,124 @@
     <h1 class="text-decoration-underline">Add New Item</h1>
     <a href="{{ route('item') }}" class="btn btn-secondary mt-3">Back to Items</a>
 
+    {{-- Error summary --}}
+    @if ($errors->any())
+        <div class="alert alert-danger">
+            <strong>There were some problems with your submission:</strong>
+            <ul class="mb-0">
+                @foreach ($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
     <div class="border border-dark mt-3 p-3">
-        <form action="{{ route('item.store') }}" method="POST">
+        <form action="{{ route('item.store') }}" method="POST" enctype="multipart/form-data">
             @csrf
             <div class="row">
                 <div class="col-md-6">
                     <h3>Basic Information</h3>
                     <div class="mb-3">
-                        <label for="name" class="form-label">Item Name</label>
-                        <input type="text" name="name" class="form-control" id="name" required>
+                        <label for="name" class="form-label">Item Name <span class="text-danger">*</span></label>
+                        <input type="text" name="name" class="form-control @error('name') is-invalid @enderror" id="name" required value="{{ old('name') }}">
+                        @error('name')
+                            <div class="invalid-feedback">Item Name is required. Please enter a value.</div>
+                        @enderror
                     </div>
                     <div class="mb-3">
                         <label for="serial_number" class="form-label">Serial Number</label>
-                        <input type="text" name="serial_number" class="form-control" id="serial_number">
+                        <input type="text" name="serial_number" class="form-control @error('serial_number') is-invalid @enderror" id="serial_number" value="{{ old('serial_number') }}">
+                        @error('serial_number')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                     </div>
                     <div class="mb-3">
                         <label for="asset_tag" class="form-label">Asset Tag</label>
-                        <input type="text" name="asset_tag" class="form-control" id="asset_tag">
+                        <input type="text" name="asset_tag" class="form-control @error('asset_tag') is-invalid @enderror" id="asset_tag" value="{{ old('asset_tag') }}">
+                        @error('asset_tag')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                     </div>
                     <div class="mb-3">
                         <label for="barcode" class="form-label">Barcode</label>
-                        <input type="text" name="barcode" class="form-control" id="barcode">
+                        <input type="text" name="barcode" class="form-control @error('barcode') is-invalid @enderror" id="barcode" value="{{ old('barcode') }}">
+                        @error('barcode')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                     </div>
                     <div class="mb-3">
                         <label for="rfid_tag" class="form-label">RFID Tag</label>
-                        <input type="text" name="rfid_tag" class="form-control" id="rfid_tag">
+                        <input type="text" name="rfid_tag" class="form-control @error('rfid_tag') is-invalid @enderror" id="rfid_tag" value="{{ old('rfid_tag') }}">
+                        @error('rfid_tag')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                     </div>
                     <div class="mb-3">
                         <label for="description" class="form-label">Description</label>
-                        <textarea name="description" class="form-control" id="description" rows="3"></textarea>
+                        <textarea name="description" class="form-control @error('description') is-invalid @enderror" id="description" rows="3">{{ old('description') }}</textarea>
+                        @error('description')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                     </div>
                 </div>
 
                 <div class="col-md-6">
                     <h3>Asset Details</h3>
                     <div class="mb-3">
-                        <label for="asset_type" class="form-label">Asset Type</label>
-                        <select name="asset_type" class="form-select" id="asset_type" required>
-                            <option value="fixed">Fixed Asset</option>
-                            <option value="current">Current Asset</option>
+                        <label for="asset_type" class="form-label">Asset Type <span class="text-danger">*</span></label>
+                        <select name="asset_type" class="form-select @error('asset_type') is-invalid @enderror" id="asset_type" required>
+                            <option value="fixed" {{ old('asset_type') == 'fixed' ? 'selected' : '' }}>Fixed Asset</option>
+                            <option value="current" {{ old('asset_type') == 'current' ? 'selected' : '' }}>Current Asset</option>
                         </select>
+                        @error('asset_type')
+                            <div class="invalid-feedback">Asset Type is required. Please select a value.</div>
+                        @enderror
                     </div>
                     <div class="mb-3">
                         <label for="value" class="form-label">Value</label>
-                        <input type="number" step="0.01" name="value" class="form-control" id="value">
+                        <input type="number" step="0.01" name="value" class="form-control @error('value') is-invalid @enderror" id="value" value="{{ old('value') }}">
+                        @error('value')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                     </div>
                     <div class="mb-3">
                         <label for="depreciation_cost" class="form-label">Depreciation Cost</label>
-                        <input type="number" step="0.01" name="depreciation_cost" class="form-control" id="depreciation_cost">
+                        <input type="number" step="0.01" name="depreciation_cost" class="form-control @error('depreciation_cost') is-invalid @enderror" id="depreciation_cost" value="{{ old('depreciation_cost') }}">
+                        @error('depreciation_cost')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                     </div>
                     <div class="mb-3">
                         <label for="depreciation_method" class="form-label">Depreciation Method</label>
-                        <select name="depreciation_method" class="form-select" id="depreciation_method">
+                        <select name="depreciation_method" class="form-select @error('depreciation_method') is-invalid @enderror" id="depreciation_method">
                             <option value="">-- Select Method --</option>
-                            <option value="straight_line">Straight Line</option>
-                            <option value="reducing_balance">Reducing Balance</option>
+                            <option value="straight_line" {{ old('depreciation_method') == 'straight_line' ? 'selected' : '' }}>Straight Line</option>
+                            <option value="reducing_balance" {{ old('depreciation_method') == 'reducing_balance' ? 'selected' : '' }}>Reducing Balance</option>
                         </select>
+                        @error('depreciation_method')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                     </div>
                     <div class="mb-3">
                         <label for="depreciation_rate" class="form-label">Depreciation Rate (%)</label>
-                        <input type="number" step="0.01" name="depreciation_rate" class="form-control" id="depreciation_rate">
+                        <input type="number" step="0.01" name="depreciation_rate" class="form-control @error('depreciation_rate') is-invalid @enderror" id="depreciation_rate" value="{{ old('depreciation_rate') }}">
+                        @error('depreciation_rate')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                     </div>
                     <div class="mb-3">
-                        <label for="status" class="form-label">Status</label>
-                        <select name="status" class="form-select" id="status" required>
-                            <option value="available">Available</option>
-                            <option value="in_use">In Use</option>
-                            <option value="maintenance">Maintenance</option>
-                            <option value="not_traceable">Not Traceable</option>
-                            <option value="disposed">Disposed</option>
+                        <label for="status" class="form-label">Status <span class="text-danger">*</span></label>
+                        <select name="status" class="form-select @error('status') is-invalid @enderror" id="status" required>
+                            <option value="available" {{ old('status') == 'available' ? 'selected' : '' }}>Available</option>
+                            <option value="in_use" {{ old('status') == 'in_use' ? 'selected' : '' }}>In Use</option>
+                            <option value="maintenance" {{ old('status') == 'maintenance' ? 'selected' : '' }}>Maintenance</option>
+                            <option value="not_traceable" {{ old('status') == 'not_traceable' ? 'selected' : '' }}>Not Traceable</option>
+                            <option value="disposed" {{ old('status') == 'disposed' ? 'selected' : '' }}>Disposed</option>
                         </select>
+                        @error('status')
+                            <div class="invalid-feedback">Status is required. Please select a value.</div>
+                        @enderror
                     </div>
                 </div>
             </div>
@@ -85,59 +133,83 @@
                     <h3>Purchase Information</h3>
                     <div class="mb-3">
                         <label for="purchased_by" class="form-label">Purchased By</label>
-                        <select name="purchased_by" class="form-select" id="purchased_by">
+                        <select name="purchased_by" class="form-select @error('purchased_by') is-invalid @enderror" id="purchased_by">
                             <option value="">-- Select User --</option>
                             @foreach($users as $user)
-                                <option value="{{ $user->id }}">{{ $user->name }}</option>
+                                <option value="{{ $user->id }}" {{ old('purchased_by') == $user->id ? 'selected' : '' }}>{{ $user->name ?? 'No Name' }}</option>
                             @endforeach
                         </select>
+                        @error('purchased_by')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                     </div>
                     <div class="mb-3">
                         <label for="supplier_id" class="form-label">Supplier</label>
-                        <select name="supplier_id" class="form-select" id="supplier_id">
+                        <select name="supplier_id" class="form-select @error('supplier_id') is-invalid @enderror" id="supplier_id">
                             <option value="">-- Select Supplier --</option>
                             @foreach($suppliers as $supplier)
-                                <option value="{{ $supplier->id }}">{{ $supplier->name }}</option>
+                                <option value="{{ $supplier->id }}" {{ old('supplier_id') == $supplier->id ? 'selected' : '' }}>{{ $supplier->name ?? 'No Name' }}</option>
                             @endforeach
                         </select>
+                        @error('supplier_id')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                     </div>
                     <div class="mb-3">
                         <label for="purchase_date" class="form-label">Purchase Date</label>
-                        <input type="date" name="purchase_date" class="form-control" id="purchase_date">
+                        <input type="date" name="purchase_date" class="form-control @error('purchase_date') is-invalid @enderror" id="purchase_date" value="{{ old('purchase_date') }}">
+                        @error('purchase_date')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                     </div>
                     <div class="mb-3">
                         <label for="received_by" class="form-label">Received By</label>
-                        <select name="received_by" class="form-select" id="received_by">
+                        <select name="received_by" class="form-select @error('received_by') is-invalid @enderror" id="received_by">
                             <option value="">-- Select User --</option>
                             @foreach($users as $user)
-                                <option value="{{ $user->id }}">{{ $user->name }}</option>
+                                <option value="{{ $user->id }}" {{ old('received_by') == $user->id ? 'selected' : '' }}>{{ $user->name ?? 'No Name' }}</option>
                             @endforeach
                         </select>
+                        @error('received_by')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                     </div>
                 </div>
 
                 <div class="col-md-6">
                     <h3>Location Information</h3>
                     <div class="mb-3">
-                        <label for="floor_level" class="form-label">Floor Level</label>
-                        <input type="text" name="floor_level" class="form-control" id="floor_level" required>
+                        <label for="floor_level" class="form-label">Floor Level <span class="text-danger">*</span></label>
+                        <input type="text" name="floor_level" class="form-control @error('floor_level') is-invalid @enderror" id="floor_level" required value="{{ old('floor_level') }}">
+                        @error('floor_level')
+                            <div class="invalid-feedback">Floor Level is required. Please enter a value.</div>
+                        @enderror
                     </div>
                     <div class="mb-3">
-                        <label for="room_number" class="form-label">Room Number</label>
-                        <input type="text" name="room_number" class="form-control" id="room_number" required>
+                        <label for="room_number" class="form-label">Room Number <span class="text-danger">*</span></label>
+                        <input type="text" name="room_number" class="form-control @error('room_number') is-invalid @enderror" id="room_number" required value="{{ old('room_number') }}">
+                        @error('room_number')
+                            <div class="invalid-feedback">Room Number is required. Please enter a value.</div>
+                        @enderror
                     </div>
                     <div class="mb-3">
                         <label for="location" class="form-label">Additional Location Details</label>
-                        <input type="text" name="location" class="form-control" id="location">
+                        <input type="text" name="location" class="form-control @error('location') is-invalid @enderror" id="location" value="{{ old('location') }}">
+                        @error('location')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                     </div>
                     <div class="mb-3">
                         <label for="assigned_to" class="form-label">Assigned To</label>
-                        <select name="assigned_to" class="form-select" id="assigned_to">
+                        <select name="assigned_to" class="form-select @error('assigned_to') is-invalid @enderror" id="assigned_to">
                             <option value="">-- Select User --</option>
                             @foreach($users as $user)
-                                <option value="{{ $user->id }}">{{ $user->name }}</option>
+                                <option value="{{ $user->id }}" {{ old('assigned_to') == $user->id ? 'selected' : '' }}>{{ $user->name ?? 'No Name' }}</option>
                             @endforeach
                         </select>
+                        @error('assigned_to')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                     </div>
                 </div>
             </div>
@@ -145,15 +217,13 @@
             <div class="row mt-4">
                 <div class="col-12">
                     <h3>Specifications</h3>
-                    <div id="specifications-container">
-                        <div class="mb-3 specification-row">
-                            <div class="input-group">
-                                <input type="text" name="specifications[]" class="form-control" placeholder="Enter specification">
-                                <button type="button" class="btn btn-danger remove-specification">Remove</button>
-                            </div>
-                        </div>
+                    <div class="mb-3">
+                        <label for="specifications" class="form-label">Specifications</label>
+                        <textarea name="specifications" class="form-control @error('specifications') is-invalid @enderror" id="specifications" rows="3">{{ old('specifications') }}</textarea>
+                        @error('specifications')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                     </div>
-                    <button type="button" class="btn btn-secondary" id="add-specification">Add Specification</button>
                 </div>
             </div>
 
@@ -161,9 +231,45 @@
                 <div class="col-12">
                     <div class="mb-3">
                         <label for="remarks" class="form-label">Remarks</label>
-                        <textarea name="remarks" class="form-control" id="remarks" rows="3"></textarea>
+                        <textarea name="remarks" class="form-control @error('remarks') is-invalid @enderror" id="remarks" rows="3">{{ old('remarks') }}</textarea>
+                        @error('remarks')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
                     </div>
                 </div>
+            </div>
+
+            <div class="mb-3">
+                <label for="tracking_mode" class="form-label">Tracking Mode <span class="text-danger">*</span></label>
+                <select name="tracking_mode" id="tracking_mode" class="form-select @error('tracking_mode') is-invalid @enderror" required>
+                    <option value="individual" {{ old('tracking_mode') == 'individual' ? 'selected' : '' }}>Individual</option>
+                    <option value="bulk" {{ old('tracking_mode') == 'bulk' ? 'selected' : '' }}>Bulk</option>
+                </select>
+                @error('tracking_mode')
+                    <div class="invalid-feedback">{{ $message }}</div>
+                @enderror
+            </div>
+            <div class="mb-3">
+                <label for="quantity" class="form-label">Quantity <span class="text-danger">*</span></label>
+                <input type="number" name="quantity" id="quantity" class="form-control @error('quantity') is-invalid @enderror" min="1" value="{{ old('quantity', 1) }}">
+                @error('quantity')
+                    <div class="invalid-feedback">{{ $message }}</div>
+                @enderror
+            </div>
+            <div class="mb-3" id="individual-count-group" style="display: none;">
+                <label for="individual_count" class="form-label">How many items to create? <span class="text-danger">*</span></label>
+                <input type="number" name="individual_count" id="individual_count" class="form-control @error('individual_count') is-invalid @enderror" min="1" value="{{ old('individual_count', 1) }}">
+                @error('individual_count')
+                    <div class="invalid-feedback">{{ $message }}</div>
+                @enderror
+            </div>
+
+            <div class="mb-3">
+                <label for="image" class="form-label">Item Image</label>
+                <input type="file" name="image" id="image" class="form-control @error('image') is-invalid @enderror" accept="image/*">
+                @error('image')
+                    <div class="invalid-feedback">{{ $message }}</div>
+                @enderror
             </div>
 
             <button type="submit" class="btn btn-primary mt-3">Submit</button>
@@ -174,34 +280,22 @@
 @push('scripts')
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        const container = document.getElementById('specifications-container');
-        const addButton = document.getElementById('add-specification');
-        const maxSpecifications = 6;
-
-        addButton.addEventListener('click', function() {
-            const rows = container.getElementsByClassName('specification-row');
-            if (rows.length < maxSpecifications) {
-                const newRow = document.createElement('div');
-                newRow.className = 'mb-3 specification-row';
-                newRow.innerHTML = `
-                    <div class="input-group">
-                        <input type="text" name="specifications[]" class="form-control" placeholder="Enter specification">
-                        <button type="button" class="btn btn-danger remove-specification">Remove</button>
-                    </div>
-                `;
-                container.appendChild(newRow);
+        const trackingMode = document.getElementById('tracking_mode');
+        const quantityField = document.getElementById('quantity');
+        const individualCountGroup = document.getElementById('individual-count-group');
+        function toggleTrackingFields() {
+            if (trackingMode.value === 'bulk') {
+                quantityField.disabled = false;
+                quantityField.required = true;
+                individualCountGroup.style.display = 'none';
+            } else {
+                quantityField.disabled = true;
+                quantityField.required = false;
+                individualCountGroup.style.display = '';
             }
-            if (rows.length >= maxSpecifications) {
-                addButton.disabled = true;
-            }
-        });
-
-        container.addEventListener('click', function(e) {
-            if (e.target.classList.contains('remove-specification')) {
-                e.target.closest('.specification-row').remove();
-                addButton.disabled = false;
-            }
-        });
+        }
+        trackingMode.addEventListener('change', toggleTrackingFields);
+        toggleTrackingFields();
     });
 </script>
 @endpush

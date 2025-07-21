@@ -10,7 +10,7 @@
         <div class="row">
             <div class="col-md-6">
                 <h3>Asset Information</h3>
-                <p><strong>Asset Name:</strong> {{ $movement->item->name }}</p>
+                <p><strong>Asset Name:</strong> {{ $movement->item ? $movement->item->name : 'N/A' }}</p>
                 <p><strong>Asset Tag:</strong> {{ $movement->item->asset_tag ?? 'N/A' }}</p>
                 <p><strong>Serial Number:</strong> {{ $movement->item->serial_number ?? 'N/A' }}</p>
             </div>
@@ -18,7 +18,7 @@
                 <h3>Movement Information</h3>
                 <p><strong>Movement Type:</strong> {{ ucfirst($movement->movement_type) }}</p>
                 <p><strong>Date:</strong> {{ $movement->created_at->format('Y-m-d H:i') }}</p>
-                <p><strong>Moved By:</strong> {{ $movement->movedBy->name }}</p>
+                <p><strong>Moved By:</strong> {{ $movement->movedBy ? $movement->movedBy->name : 'N/A' }}</p>
             </div>
         </div>
 
