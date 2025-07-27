@@ -11,16 +11,33 @@
             <button class="btn btn-search" type="submit"><i class="fas fa-search"></i> Search</button>
         </div>
     </form>
-    <a href="{{ route('item.showAdd') }}" class="btn btn-add align-self-md-start align-self-stretch">
-        <span class="btn-add-icon me-2">
-            <i class="fas fa-plus"></i>
-            <svg class="fallback-plus" width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:none;vertical-align:middle;">
-                <rect x="7.5" width="3" height="18" rx="1.5" fill="currentColor"/>
-                <rect y="10.5" width="3" height="18" rx="1.5" transform="rotate(-90 0 10.5)" fill="currentColor"/>
-            </svg>
-        </span>
-        Add new item
-    </a>
+    <div class="d-flex flex-column gap-2 align-self-md-start align-self-stretch">
+        <a href="{{ route('item.showAdd') }}" class="btn btn-add">
+            <span class="btn-add-icon me-2">
+                <i class="fas fa-plus"></i>
+                <svg class="fallback-plus" width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:none;vertical-align:middle;">
+                    <rect x="7.5" width="3" height="18" rx="1.5" fill="currentColor"/>
+                    <rect y="10.5" width="3" height="18" rx="1.5" transform="rotate(-90 0 10.5)" fill="currentColor"/>
+                </svg>
+            </span>
+            Add new item
+        </a>
+        <a href="{{ route('item.export') }}" class="btn btn-export" id="exportBtn">
+            <span class="btn-export-icon me-2">
+                <i class="fas fa-file-excel"></i>
+            </span>
+            <span class="export-text">Export to Excel</span>
+            <span class="export-loading" style="display: none;">
+                <i class="fas fa-spinner fa-spin"></i> Exporting...
+            </span>
+        </a>
+        <a href="{{ route('item.showImport') }}" class="btn btn-import">
+            <span class="btn-import-icon me-2">
+                <i class="fas fa-file-import"></i>
+            </span>
+            Import from Excel
+        </a>
+    </div>
 </div>
 <div id="items-table-wrapper">
     @include('pages.item.partials.table')
@@ -98,13 +115,100 @@
     .btn-add .fa-plus { display: inline-block; }
     .btn-add .fallback-plus { display: none; }
     .btn-add .fa-plus:empty + .fallback-plus { display: inline-block; }
+    
+    .btn-export {
+        background: #4caf50;
+        color: #fff;
+        border-radius: 2rem;
+        font-weight: 600;
+        font-size: 1rem;
+        padding: 0.7em 1.8em;
+        box-shadow: 0 4px 16px rgba(76, 175, 80, 0.13);
+        border: none;
+        transition: background 0.18s, box-shadow 0.18s, transform 0.13s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 180px;
+        cursor: pointer;
+        outline: none;
+        text-decoration: none;
+    }
+    .btn-export:hover, .btn-export:focus {
+        background: #388e3c;
+        color: #fff;
+        box-shadow: 0 8px 24px rgba(76, 175, 80, 0.18);
+        text-decoration: none;
+        transform: scale(1.045);
+    }
+    .btn-export-icon {
+        display: flex;
+        align-items: center;
+        font-size: 1.1em;
+    }
+    
+    .btn-import {
+        background: #ff9800;
+        color: #fff;
+        border-radius: 2rem;
+        font-weight: 600;
+        font-size: 1rem;
+        padding: 0.7em 1.8em;
+        box-shadow: 0 4px 16px rgba(255, 152, 0, 0.13);
+        border: none;
+        transition: background 0.18s, box-shadow 0.18s, transform 0.13s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 180px;
+        cursor: pointer;
+        outline: none;
+        text-decoration: none;
+    }
+    .btn-import:hover, .btn-import:focus {
+        background: #f57c00;
+        color: #fff;
+        box-shadow: 0 8px 24px rgba(255, 152, 0, 0.18);
+        text-decoration: none;
+        transform: scale(1.045);
+    }
+    .btn-import-icon {
+        display: flex;
+        align-items: center;
+        font-size: 1.1em;
+    }
     @media (max-width: 767.98px) {
         .item-controls {
             flex-direction: column;
         }
-        .btn-add {
+        .btn-add, .btn-export, .btn-import {
             min-width: 100%;
         }
     }
 </style>
+@endpush
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const exportBtn = document.getElementById('exportBtn');
+    const exportText = exportBtn.querySelector('.export-text');
+    const exportLoading = exportBtn.querySelector('.export-loading');
+    
+    exportBtn.addEventListener('click', function() {
+        // Show loading state
+        exportText.style.display = 'none';
+        exportLoading.style.display = 'inline';
+        exportBtn.style.pointerEvents = 'none';
+        
+        // The download will start automatically
+        // Reset button after a delay (in case download fails)
+        setTimeout(function() {
+            exportText.style.display = 'inline';
+            exportLoading.style.display = 'none';
+            exportBtn.style.pointerEvents = 'auto';
+        }, 5000);
+    });
+});
+</script>
 @endpush

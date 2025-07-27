@@ -56,7 +56,11 @@ class ItemController extends Controller
         $categories = Category::all();
         $suppliers = Supplier::all();
         $users = \App\Models\User::all();
-        return view('pages.item.add', compact('categories', 'suppliers', 'users'));
+        
+        // Get the default supplier ID
+        $defaultSupplier = Supplier::where('name', 'Default Supplier')->first();
+        
+        return view('pages.item.add', compact('categories', 'suppliers', 'users', 'defaultSupplier'));
     }
 
     public function store(Request $request)
@@ -75,10 +79,10 @@ class ItemController extends Controller
             'specifications.*' => 'required|string|max:255',
             'asset_type' => 'required|in:fixed,current',
             'value' => 'nullable|numeric|min:0',
-            'depreciation_cost' => 'nullable|numeric|min:0',
+            'invoice_number' => 'nullable|string|max:255',
             'purchased_by' => 'nullable|exists:users,id',
-            'supplier_id' => 'nullable|exists:suppliers,id',
-            'purchase_date' => 'nullable|date',
+            'supplier_id' => 'required|exists:suppliers,id',
+            'purchase_date' => 'required_with:invoice_number|nullable|date',
             'received_by' => 'nullable|exists:users,id',
             'status' => 'required|in:available,in_use,maintenance,not_traceable,disposed',
             'remarks' => 'nullable|string',
@@ -90,8 +94,13 @@ class ItemController extends Controller
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
         ]);
 
-        $fields = $request->except(['individual_count', '_token', 'image']);
+        $fields = $request->except(['individual_count', '_token', 'image', 'invoice_number']);
         $fields['tracking_mode'] = $request->tracking_mode;
+
+        // Calculate depreciation cost automatically if value and depreciation rate are provided
+        if ($request->filled('value') && $request->filled('depreciation_rate')) {
+            $fields['depreciation_cost'] = ($request->value * $request->depreciation_rate) / 100;
+        }
 
         // Handle image upload and compression
         $imagePath = null;
@@ -104,22 +113,68 @@ class ItemController extends Controller
         }
         $fields['image'] = $imagePath;
 
+        // Create purchase record if invoice number is provided
+        $purchase = null;
+        if ($request->filled('invoice_number') && $request->filled('supplier_id') && $request->filled('purchase_date')) {
+            $purchase = \App\Models\Purchase::create([
+                'supplier_id' => $request->supplier_id,
+                'invoice_number' => $request->invoice_number,
+                'purchase_date' => $request->purchase_date,
+                'total_value' => $request->value ?? 0,
+            ]);
+        }
+
         if ($request->tracking_mode === 'bulk') {
             $fields['quantity'] = $request->quantity;
-            Item::create($fields);
+            $fields['serial_number'] = Item::generateSerialNumber('BULK');
+            $fields['asset_tag'] = Item::generateAssetTag('BULK');
+            if ($purchase) {
+                $fields['purchase_id'] = $purchase->id;
+            }
+            $item = Item::create($fields);
+            
+            // Create purchase item if purchase exists
+            if ($purchase) {
+                \App\Models\PurchaseItem::create([
+                    'purchase_id' => $purchase->id,
+                    'item_name' => $request->name,
+                    'quantity' => $request->quantity,
+                    'unit_price' => $request->value ?? 0,
+                    'item_type' => $request->asset_type,
+                ]);
+            }
         } else {
             $count = $request->individual_count ?? 1;
             for ($i = 0; $i < $count; $i++) {
                 $fields['quantity'] = 1;
-                $fields['serial_number'] = 'COSMOS-SN-' . strtoupper(uniqid()) . '-' . ($i+1);
-                $fields['asset_tag'] = 'COSMOS-AT-' . strtoupper(uniqid()) . '-' . ($i+1);
+                $fields['serial_number'] = Item::generateSerialNumber(($i+1));
+                $fields['asset_tag'] = Item::generateAssetTag(($i+1));
                 $fields['image'] = $imagePath;
-                Item::create($fields);
+                if ($purchase) {
+                    $fields['purchase_id'] = $purchase->id;
+                }
+                $item = Item::create($fields);
+                
+                // Create purchase item if purchase exists (only for first item to avoid duplicates)
+                if ($purchase && $i === 0) {
+                    \App\Models\PurchaseItem::create([
+                        'purchase_id' => $purchase->id,
+                        'item_name' => $request->name,
+                        'quantity' => $count,
+                        'unit_price' => $request->value ?? 0,
+                        'item_type' => $request->asset_type,
+                    ]);
+                }
             }
         }
 
+        $message = 'Item(s) added successfully. Waiting for admin approval.';
+        if ($purchase) {
+            $message .= ' Purchase record created with invoice #' . $request->invoice_number;
+        }
+        
         return redirect()->route('item')
-            ->with(['message' => 'Item(s) added successfully. Waiting for admin approval.', 'alert' => 'alert-success']);
+            ->with(['message' => $message, 'alert' => 'alert-success']);
     }
 
     public function destroy($id)
@@ -136,7 +191,11 @@ class ItemController extends Controller
         $categories = Category::all();
         $suppliers = Supplier::all();
         $users = \App\Models\User::all();
-        return view('pages.item.edit', compact('item', 'categories', 'suppliers', 'users'));
+        
+        // Get the default supplier ID for fallback
+        $defaultSupplier = Supplier::where('name', 'Default Supplier')->first();
+        
+        return view('pages.item.edit', compact('item', 'categories', 'suppliers', 'users', 'defaultSupplier'));
     }
 
     public function update(Request $request, $id)
@@ -152,9 +211,8 @@ class ItemController extends Controller
             'specifications.*' => 'required|string|max:255',
             'asset_type' => 'required|in:fixed,current',
             'value' => 'nullable|numeric|min:0',
-            'depreciation_cost' => 'nullable|numeric|min:0',
             'purchased_by' => 'nullable|exists:users,id',
-            'supplier_id' => 'nullable|exists:suppliers,id',
+            'supplier_id' => 'required|exists:suppliers,id',
             'purchase_date' => 'nullable|date',
             'received_by' => 'nullable|exists:users,id',
             'status' => 'required|in:available,in_use,maintenance,not_traceable,disposed',
@@ -167,7 +225,15 @@ class ItemController extends Controller
         ]);
 
         $item = Item::findOrFail($id);
-        $item->update($request->all());
+        
+        $updateData = $request->all();
+        
+        // Calculate depreciation cost automatically if value and depreciation rate are provided
+        if ($request->filled('value') && $request->filled('depreciation_rate')) {
+            $updateData['depreciation_cost'] = ($request->value * $request->depreciation_rate) / 100;
+        }
+        
+        $item->update($updateData);
 
         return redirect()->route('item')
             ->with(['message' => 'Item updated successfully', 'alert' => 'alert-success']);
@@ -196,5 +262,56 @@ class ItemController extends Controller
     {
         $items = Item::with(['assignedUser', 'approvedBy'])->get();
         return view('pages.item.depreciation-report', compact('items'));
+    }
+
+    public function export()
+    {
+        $filename = 'items_' . date('Y-m-d_H-i-s') . '.xlsx';
+        return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\ItemsExport, $filename);
+    }
+
+    public function showImport()
+    {
+        return view('pages.item.import');
+    }
+
+    public function import(Request $request)
+    {
+        $request->validate([
+            'file' => 'required|file|mimes:xlsx,xls,csv|max:10240', // 10MB max
+        ]);
+
+        try {
+            $import = new \App\Imports\ItemsImport();
+            \Maatwebsite\Excel\Facades\Excel::import($import, $request->file('file'));
+
+            $importedCount = $import->getImportedCount();
+            $updatedCount = $import->getUpdatedCount();
+            $errors = $import->getErrors();
+
+            $message = "Import completed successfully! ";
+            if ($importedCount > 0) {
+                $message .= "{$importedCount} new item(s) imported. ";
+            }
+            if ($updatedCount > 0) {
+                $message .= "{$updatedCount} item(s) updated. ";
+            }
+            if (!empty($errors)) {
+                $message .= "Errors: " . implode(', ', $errors);
+            }
+
+            return redirect()->route('item')
+                ->with(['message' => $message, 'alert' => empty($errors) ? 'alert-success' : 'alert-warning']);
+
+        } catch (\Exception $e) {
+            return redirect()->back()
+                ->with(['message' => 'Import failed: ' . $e->getMessage(), 'alert' => 'alert-danger']);
+        }
+    }
+
+    public function downloadTemplate()
+    {
+        $filename = 'items_template_' . date('Y-m-d') . '.xlsx';
+        return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\ItemsTemplateExport, $filename);
     }
 }

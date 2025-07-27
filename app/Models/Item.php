@@ -22,7 +22,7 @@ class Item extends Model
         'rfid_tag',
         'location',
         'assigned_to',
-        'condition',
+                'condition',
         'description',
         'specifications',
         'asset_type',
@@ -43,7 +43,8 @@ class Item extends Model
         'approved_at',
         'tracking_mode',
         'quantity',
-        'image'
+        'image',
+        'purchase_id'
     ];
 
     protected $casts = [
@@ -96,6 +97,11 @@ class Item extends Model
         return $this->belongsTo(User::class, 'approved_by');
     }
 
+    public function purchase()
+    {
+        return $this->belongsTo(Purchase::class);
+    }
+
     /**
      * Calculate annual depreciation based on method.
      */
@@ -138,5 +144,78 @@ class Item extends Model
             return max($bookValue, 0);
         }
         return null;
+    }
+
+    /**
+     * Generate the next serial number
+     */
+    public static function generateSerialNumber($suffix = '')
+    {
+        $year = date('Y');
+        $lastItem = self::where('serial_number', 'like', "COSMOS-SN-{$year}%")
+                        ->orderBy('serial_number', 'desc')
+                        ->first();
+        
+        if ($lastItem) {
+            // Extract the number from the last serial number
+            preg_match('/COSMOS-SN-' . $year . '-(\d+)/', $lastItem->serial_number, $matches);
+            $nextNumber = (int)$matches[1] + 1;
+        } else {
+            $nextNumber = 1;
+        }
+        
+        $serialNumber = "COSMOS-SN-{$year}-" . str_pad($nextNumber, 6, '0', STR_PAD_LEFT);
+        
+        if ($suffix) {
+            $serialNumber .= "-{$suffix}";
+        }
+        
+        return $serialNumber;
+    }
+
+    /**
+     * Generate the next asset tag
+     */
+    public static function generateAssetTag($suffix = '')
+    {
+        $year = date('Y');
+        $lastItem = self::where('asset_tag', 'like', "COSMOS-AT-{$year}%")
+                        ->orderBy('asset_tag', 'desc')
+                        ->first();
+        
+        if ($lastItem) {
+            // Extract the number from the last asset tag
+            preg_match('/COSMOS-AT-' . $year . '-(\d+)/', $lastItem->asset_tag, $matches);
+            $nextNumber = (int)$matches[1] + 1;
+        } else {
+            $nextNumber = 1;
+        }
+        
+        $assetTag = "COSMOS-AT-{$year}-" . str_pad($nextNumber, 6, '0', STR_PAD_LEFT);
+        
+        if ($suffix) {
+            $assetTag .= "-{$suffix}";
+        }
+        
+        return $assetTag;
+    }
+
+    /**
+     * Calculate depreciation cost based on value and depreciation rate
+     */
+    public function calculateDepreciationCost()
+    {
+        if ($this->value && $this->depreciation_rate) {
+            return ($this->value * $this->depreciation_rate) / 100;
+        }
+        return $this->depreciation_cost;
+    }
+
+    /**
+     * Get the effective depreciation cost (calculated or stored)
+     */
+    public function getEffectiveDepreciationCostAttribute()
+    {
+        return $this->calculateDepreciationCost();
     }
 }

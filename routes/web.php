@@ -52,6 +52,10 @@ Route::middleware('auth')->group(function () {
         Route::get('/{id}/edit', 'showEdit')->name('.showEdit');
         Route::post('/{id}/edit', 'update')->name('.update');
         Route::post('/{id}/approve', 'approve')->name('.approve');
+        Route::get('/export', 'export')->name('.export');
+        Route::get('/import', 'showImport')->name('.showImport');
+        Route::post('/import', 'import')->name('.import');
+        Route::get('/template', 'downloadTemplate')->name('.template');
     });
 
     // Supplier

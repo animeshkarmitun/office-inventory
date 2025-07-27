@@ -33,14 +33,16 @@
                     </div>
                     <div class="mb-3">
                         <label for="serial_number" class="form-label">Serial Number</label>
-                        <input type="text" name="serial_number" class="form-control @error('serial_number') is-invalid @enderror" id="serial_number" value="{{ old('serial_number') }}">
+                        <input type="text" name="serial_number" class="form-control @error('serial_number') is-invalid @enderror" id="serial_number" value="{{ old('serial_number') }}" readonly placeholder="Will be auto-generated">
+                        <small class="form-text text-muted">Serial number will be automatically generated when the item is created.</small>
                         @error('serial_number')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
                     </div>
                     <div class="mb-3">
                         <label for="asset_tag" class="form-label">Asset Tag</label>
-                        <input type="text" name="asset_tag" class="form-control @error('asset_tag') is-invalid @enderror" id="asset_tag" value="{{ old('asset_tag') }}">
+                        <input type="text" name="asset_tag" class="form-control @error('asset_tag') is-invalid @enderror" id="asset_tag" value="{{ old('asset_tag') }}" readonly placeholder="Will be auto-generated">
+                        <small class="form-text text-muted">Asset tag will be automatically generated when the item is created.</small>
                         @error('asset_tag')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -87,13 +89,7 @@
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
                     </div>
-                    <div class="mb-3">
-                        <label for="depreciation_cost" class="form-label">Depreciation Cost</label>
-                        <input type="number" step="0.01" name="depreciation_cost" class="form-control @error('depreciation_cost') is-invalid @enderror" id="depreciation_cost" value="{{ old('depreciation_cost') }}">
-                        @error('depreciation_cost')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                    </div>
+
                     <div class="mb-3">
                         <label for="depreciation_method" class="form-label">Depreciation Method</label>
                         <select name="depreciation_method" class="form-select @error('depreciation_method') is-invalid @enderror" id="depreciation_method">
@@ -108,6 +104,7 @@
                     <div class="mb-3">
                         <label for="depreciation_rate" class="form-label">Depreciation Rate (%)</label>
                         <input type="number" step="0.01" name="depreciation_rate" class="form-control @error('depreciation_rate') is-invalid @enderror" id="depreciation_rate" value="{{ old('depreciation_rate') }}">
+                        <small class="form-text text-muted" id="depreciation-note" style="display: none;"></small>
                         @error('depreciation_rate')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -132,6 +129,14 @@
                 <div class="col-md-6">
                     <h3>Purchase Information</h3>
                     <div class="mb-3">
+                        <label for="invoice_number" class="form-label">Invoice Number</label>
+                        <input type="text" name="invoice_number" class="form-control @error('invoice_number') is-invalid @enderror" id="invoice_number" value="{{ old('invoice_number') }}" placeholder="Enter invoice number if this is a new purchase">
+                        <small class="form-text text-muted">Leave blank if this item was purchased previously</small>
+                        @error('invoice_number')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
+                    <div class="mb-3">
                         <label for="purchased_by" class="form-label">Purchased By</label>
                         <select name="purchased_by" class="form-select @error('purchased_by') is-invalid @enderror" id="purchased_by">
                             <option value="">-- Select User --</option>
@@ -144,13 +149,14 @@
                         @enderror
                     </div>
                     <div class="mb-3">
-                        <label for="supplier_id" class="form-label">Supplier</label>
-                        <select name="supplier_id" class="form-select @error('supplier_id') is-invalid @enderror" id="supplier_id">
+                        <label for="supplier_id" class="form-label">Supplier <span class="text-danger">*</span></label>
+                        <select name="supplier_id" class="form-select @error('supplier_id') is-invalid @enderror" id="supplier_id" required>
                             <option value="">-- Select Supplier --</option>
                             @foreach($suppliers as $supplier)
-                                <option value="{{ $supplier->id }}" {{ old('supplier_id') == $supplier->id ? 'selected' : '' }}>{{ $supplier->name ?? 'No Name' }}</option>
+                                <option value="{{ $supplier->id }}" {{ old('supplier_id', $defaultSupplier->id ?? '') == $supplier->id ? 'selected' : '' }}>{{ $supplier->name ?? 'No Name' }}</option>
                             @endforeach
                         </select>
+                        <small class="form-text text-muted">Default Supplier is pre-selected. You can change it to the actual supplier if needed.</small>
                         @error('supplier_id')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -283,6 +289,7 @@
         const trackingMode = document.getElementById('tracking_mode');
         const quantityField = document.getElementById('quantity');
         const individualCountGroup = document.getElementById('individual-count-group');
+        
         function toggleTrackingFields() {
             if (trackingMode.value === 'bulk') {
                 quantityField.disabled = false;
@@ -296,6 +303,49 @@
         }
         trackingMode.addEventListener('change', toggleTrackingFields);
         toggleTrackingFields();
+
+        // Auto-calculate depreciation cost
+        const valueField = document.getElementById('value');
+        const depreciationRateField = document.getElementById('depreciation_rate');
+        
+        function calculateDepreciationCost() {
+            const value = parseFloat(valueField.value) || 0;
+            const rate = parseFloat(depreciationRateField.value) || 0;
+            const depreciationCost = (value * rate) / 100;
+            
+            // You can display this in a read-only field or as a note
+            const depreciationNote = document.getElementById('depreciation-note');
+            if (depreciationNote) {
+                if (value > 0 && rate > 0) {
+                    depreciationNote.textContent = `Depreciation cost will be automatically calculated: $${depreciationCost.toFixed(2)}`;
+                    depreciationNote.style.display = 'block';
+                } else {
+                    depreciationNote.style.display = 'none';
+                }
+            }
+        }
+        
+        valueField.addEventListener('input', calculateDepreciationCost);
+        depreciationRateField.addEventListener('input', calculateDepreciationCost);
+
+        // Make purchase date conditional based on invoice number (supplier is always required now)
+        const invoiceNumberField = document.getElementById('invoice_number');
+        const purchaseDateField = document.getElementById('purchase_date');
+        
+        function togglePurchaseFields() {
+            const hasInvoice = invoiceNumberField.value.trim() !== '';
+            
+            if (hasInvoice) {
+                purchaseDateField.required = true;
+                purchaseDateField.parentElement.querySelector('.form-label').innerHTML = 'Purchase Date <span class="text-danger">*</span>';
+            } else {
+                purchaseDateField.required = false;
+                purchaseDateField.parentElement.querySelector('.form-label').innerHTML = 'Purchase Date';
+            }
+        }
+        
+        invoiceNumberField.addEventListener('input', togglePurchaseFields);
+        togglePurchaseFields(); // Run on page load
     });
 </script>
 @endpush

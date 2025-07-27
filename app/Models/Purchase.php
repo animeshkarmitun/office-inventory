@@ -21,4 +21,9 @@ class Purchase extends Model
     {
         return $this->hasMany(PurchaseItem::class);
     }
+
+    public function inventoryItems()
+    {
+        return $this->hasMany(\App\Models\Item::class);
+    }
 } 

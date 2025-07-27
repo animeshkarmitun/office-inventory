@@ -89,7 +89,7 @@
                             <rect width="36" height="36" rx="8" fill="#1976d2"/>
                             <text x="50%" y="55%" text-anchor="middle" fill="#fff" font-size="18" font-family="Arial, sans-serif" dy=".3em">IM</text>
                         </svg>
-                        <span class="app-name ms-2 d-none d-lg-inline">{{ env('APP_NAME', 'Inventory Management System') }}</span>
+                        <span class="app-name ms-2 d-none d-lg-inline">{{ env('APP_NAME', 'Inventory') }}</span>
                     </a>
                     <button class="sidebar-collapse-btn" id="sidebarCollapseBtn" type="button" aria-label="Collapse sidebar">
                         <i class="bi bi-list"></i>

@@ -18,11 +18,13 @@
                     </div>
                     <div class="mb-3">
                         <label for="serial_number" class="form-label">Serial Number</label>
-                        <input type="text" name="serial_number" class="form-control" id="serial_number" value="{{ $item->serial_number }}">
+                        <input type="text" name="serial_number" class="form-control" id="serial_number" value="{{ $item->serial_number }}" readonly>
+                        <small class="form-text text-muted">Serial number is auto-generated and cannot be changed.</small>
                     </div>
                     <div class="mb-3">
                         <label for="asset_tag" class="form-label">Asset Tag</label>
-                        <input type="text" name="asset_tag" class="form-control" id="asset_tag" value="{{ $item->asset_tag }}">
+                        <input type="text" name="asset_tag" class="form-control" id="asset_tag" value="{{ $item->asset_tag }}" readonly>
+                        <small class="form-text text-muted">Asset tag is auto-generated and cannot be changed.</small>
                     </div>
                     <div class="mb-3">
                         <label for="barcode" class="form-label">Barcode</label>
@@ -51,10 +53,7 @@
                         <label for="value" class="form-label">Value</label>
                         <input type="number" step="0.01" name="value" class="form-control" id="value" value="{{ $item->value }}">
                     </div>
-                    <div class="mb-3">
-                        <label for="depreciation_cost" class="form-label">Depreciation Cost</label>
-                        <input type="number" step="0.01" name="depreciation_cost" class="form-control" id="depreciation_cost" value="{{ $item->depreciation_cost }}">
-                    </div>
+
                     <div class="mb-3">
                         <label for="depreciation_method" class="form-label">Depreciation Method</label>
                         <select name="depreciation_method" class="form-select" id="depreciation_method">
@@ -93,11 +92,11 @@
                         </select>
                     </div>
                     <div class="mb-3">
-                        <label for="supplier_id" class="form-label">Supplier</label>
-                        <select name="supplier_id" class="form-select" id="supplier_id">
+                        <label for="supplier_id" class="form-label">Supplier <span class="text-danger">*</span></label>
+                        <select name="supplier_id" class="form-select" id="supplier_id" required>
                             <option value="">-- Select Supplier --</option>
                             @foreach($suppliers as $supplier)
-                                <option value="{{ $supplier->id }}" {{ $supplier->id == $item->supplier_id ? 'selected' : '' }}>{{ $supplier->name ?? 'No Name' }}</option>
+                                <option value="{{ $supplier->id }}" {{ $supplier->id == ($item->supplier_id ?? $defaultSupplier->id) ? 'selected' : '' }}>{{ $supplier->name ?? 'No Name' }}</option>
                             @endforeach
                         </select>
                     </div>
@@ -145,17 +144,10 @@
             <div class="row mt-4">
                 <div class="col-12">
                     <h3>Specifications</h3>
-                    <div id="specifications-container">
-                        @foreach($item->specifications ?? [] as $specification)
-                        <div class="mb-3 specification-row">
-                            <div class="input-group">
-                                <input type="text" name="specifications[]" class="form-control" value="{{ $specification }}" placeholder="Enter specification">
-                                <button type="button" class="btn btn-danger remove-specification">Remove</button>
-                            </div>
-                        </div>
-                        @endforeach
+                    <div class="mb-3">
+                        <label for="specifications" class="form-label">Specifications</label>
+                        <textarea name="specifications" class="form-control" id="specifications" rows="3">{{ $item->specifications }}</textarea>
                     </div>
-                    <button type="button" class="btn btn-secondary" id="add-specification">Add Specification</button>
                 </div>
             </div>
 
@@ -173,38 +165,5 @@
     </div>
 </div>
 
-@push('scripts')
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const container = document.getElementById('specifications-container');
-        const addButton = document.getElementById('add-specification');
-        const maxSpecifications = 6;
 
-        addButton.addEventListener('click', function() {
-            const rows = container.getElementsByClassName('specification-row');
-            if (rows.length < maxSpecifications) {
-                const newRow = document.createElement('div');
-                newRow.className = 'mb-3 specification-row';
-                newRow.innerHTML = `
-                    <div class="input-group">
-                        <input type="text" name="specifications[]" class="form-control" placeholder="Enter specification">
-                        <button type="button" class="btn btn-danger remove-specification">Remove</button>
-                    </div>
-                `;
-                container.appendChild(newRow);
-            }
-            if (rows.length >= maxSpecifications) {
-                addButton.disabled = true;
-            }
-        });
-
-        container.addEventListener('click', function(e) {
-            if (e.target.classList.contains('remove-specification')) {
-                e.target.closest('.specification-row').remove();
-                addButton.disabled = false;
-            }
-        });
-    });
-</script>
-@endpush
 @endsection
