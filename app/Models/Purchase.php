@@ -17,6 +17,11 @@ class Purchase extends Model
         'total_value',
     ];
 
+    protected $casts = [
+        'purchase_date' => 'date',
+        'total_value' => 'decimal:2',
+    ];
+
     public function items()
     {
         return $this->hasMany(PurchaseItem::class);
@@ -25,5 +30,10 @@ class Purchase extends Model
     public function inventoryItems()
     {
         return $this->hasMany(\App\Models\Item::class);
+    }
+
+    public function supplier()
+    {
+        return $this->belongsTo(Supplier::class);
     }
 } 

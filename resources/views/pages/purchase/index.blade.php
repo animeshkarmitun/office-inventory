@@ -22,7 +22,7 @@
                 <td>{{ $purchase->id }}</td>
                 <td>{{ $purchase->supplier ? $purchase->supplier->name : '-' }}</td>
                 <td>{{ $purchase->invoice_number }}</td>
-                <td>{{ $purchase->purchase_date->format('d-M-Y') }}</td>
+                <td>{{ $purchase->purchase_date ? $purchase->purchase_date->format('d-M-Y') : '-' }}</td>
                 <td>{{ number_format($purchase->total_value, 2) }}</td>
                 <td>
                     <a href="{{ route('purchase.show', $purchase->id) }}" class="btn btn-info btn-sm">View</a>
