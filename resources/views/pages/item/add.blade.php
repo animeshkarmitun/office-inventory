@@ -186,16 +186,30 @@
                     <h3>Location Information</h3>
                     <div class="mb-3">
                         <label for="floor_level" class="form-label">Floor Level <span class="text-danger">*</span></label>
-                        <input type="text" name="floor_level" class="form-control @error('floor_level') is-invalid @enderror" id="floor_level" required value="{{ old('floor_level') }}">
+                        <select name="floor_level" class="form-select @error('floor_level') is-invalid @enderror" id="floor_level" required>
+                            <option value="">-- Select Floor --</option>
+                            @foreach($floors as $floor)
+                                <option value="{{ $floor->name }}" {{ old('floor_level') == $floor->name ? 'selected' : '' }}>
+                                    {{ $floor->name }} ({{ $floor->serial_number }})
+                                </option>
+                            @endforeach
+                        </select>
                         @error('floor_level')
-                            <div class="invalid-feedback">Floor Level is required. Please enter a value.</div>
+                            <div class="invalid-feedback">Floor Level is required. Please select a value.</div>
                         @enderror
                     </div>
                     <div class="mb-3">
                         <label for="room_number" class="form-label">Room Number <span class="text-danger">*</span></label>
-                        <input type="text" name="room_number" class="form-control @error('room_number') is-invalid @enderror" id="room_number" required value="{{ old('room_number') }}">
+                        <select name="room_number" class="form-select @error('room_number') is-invalid @enderror" id="room_number" required>
+                            <option value="">-- Select Room --</option>
+                            @foreach($rooms as $room)
+                                <option value="{{ $room->name }}" {{ old('room_number') == $room->name ? 'selected' : '' }}>
+                                    {{ $room->name }} ({{ $room->room_number }}) - {{ $room->floor->name }}
+                                </option>
+                            @endforeach
+                        </select>
                         @error('room_number')
-                            <div class="invalid-feedback">Room Number is required. Please enter a value.</div>
+                            <div class="invalid-feedback">Room Number is required. Please select a value.</div>
                         @enderror
                     </div>
                     <div class="mb-3">

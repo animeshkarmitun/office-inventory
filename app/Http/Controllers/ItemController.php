@@ -42,7 +42,7 @@ class ItemController extends Controller
             });
         }
 
-        $items = $query->with(['assignedUser', 'approvedBy'])->paginate(10);
+        $items = $query->with(['assignedUser', 'approvedBy'])->orderBy('created_at', 'desc')->paginate(10);
 
         if ($request->ajax()) {
             $html = view('pages.item.partials.table', compact('items'))->render();
@@ -56,11 +56,13 @@ class ItemController extends Controller
         $categories = Category::all();
         $suppliers = Supplier::all();
         $users = \App\Models\User::all();
+        $floors = \App\Models\Floor::all();
+        $rooms = \App\Models\Room::all();
         
         // Get the default supplier ID
         $defaultSupplier = Supplier::where('name', 'Default Supplier')->first();
         
-        return view('pages.item.add', compact('categories', 'suppliers', 'users', 'defaultSupplier'));
+        return view('pages.item.add', compact('categories', 'suppliers', 'users', 'defaultSupplier', 'floors', 'rooms'));
     }
 
     public function store(Request $request)
