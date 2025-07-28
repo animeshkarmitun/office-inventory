@@ -10,11 +10,10 @@ use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithValidation;
 use Maatwebsite\Excel\Concerns\SkipsOnError;
-use Maatwebsite\Excel\Concerns\SkipsErrors;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Log;
 
-class ItemsImport implements ToCollection, WithHeadingRow, WithValidation, SkipsOnError, SkipsErrors
+class ItemsImport implements ToCollection, WithHeadingRow, WithValidation, SkipsOnError
 {
     private $importedCount = 0;
     private $updatedCount = 0;
@@ -184,5 +183,11 @@ class ItemsImport implements ToCollection, WithHeadingRow, WithValidation, Skips
     public function getErrors()
     {
         return $this->errors;
+    }
+
+    public function onError(\Throwable $e)
+    {
+        $this->errors[] = "Error: " . $e->getMessage();
+        Log::error('Import error: ' . $e->getMessage());
     }
 }
