@@ -13,6 +13,8 @@ use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\AssetMovementController;
 use App\Http\Controllers\PurchaseController;
 use App\Http\Controllers\UserManagementController;
+use App\Http\Controllers\FloorController;
+use App\Http\Controllers\RoomController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -48,6 +50,13 @@ Route::middleware('auth')->group(function () {
     Route::middleware('role:super_admin')->group(function () {
         Route::resource('user-management', UserManagementController::class);
     });
+
+    // Floor Management (Super Admin & Admin)
+    Route::resource('floor', FloorController::class);
+    
+    // Room Management (Super Admin & Admin)
+    Route::resource('room', RoomController::class);
+    Route::get('room/by-floor/{floorId}', [RoomController::class, 'getByFloor'])->name('room.by-floor');
 
     // Item
     Route::controller(ItemController::class)->prefix('item')->name('item')->group(function () {

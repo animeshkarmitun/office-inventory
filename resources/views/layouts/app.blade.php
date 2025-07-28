@@ -108,6 +108,10 @@
                         @if(Auth::user()->role === 'super_admin')
                             <li class="nav-item"><a class="nav-link {{ request()->routeIs('user-management.*') ? 'active' : '' }}" href="{{ route('user-management.index') }}" data-bs-toggle="tooltip" data-bs-placement="right" title="User Management"><i class="bi bi-person-gear"></i> <span class="link-text">User Management</span></a></li>
                         @endif
+                        @if(in_array(Auth::user()->role, ['super_admin', 'admin']))
+                            <li class="nav-item"><a class="nav-link {{ request()->routeIs('floor.*') ? 'active' : '' }}" href="{{ route('floor.index') }}" data-bs-toggle="tooltip" data-bs-placement="right" title="Floor Management"><i class="bi bi-building"></i> <span class="link-text">Floor Management</span></a></li>
+                            <li class="nav-item"><a class="nav-link {{ request()->routeIs('room.*') ? 'active' : '' }}" href="{{ route('room.index') }}" data-bs-toggle="tooltip" data-bs-placement="right" title="Room Management"><i class="bi bi-door-open"></i> <span class="link-text">Room Management</span></a></li>
+                        @endif
                     @endauth
                 </ul>
                 <div class="user-section mt-auto p-3">

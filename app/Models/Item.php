@@ -44,7 +44,9 @@ class Item extends Model
         'tracking_mode',
         'quantity',
         'image',
-        'purchase_id'
+        'purchase_id',
+        'floor_id',
+        'room_id'
     ];
 
     protected $casts = [
@@ -95,6 +97,16 @@ class Item extends Model
     public function approvedBy()
     {
         return $this->belongsTo(User::class, 'approved_by');
+    }
+
+    public function floor()
+    {
+        return $this->belongsTo(Floor::class);
+    }
+
+    public function room()
+    {
+        return $this->belongsTo(Room::class);
     }
 
     public function purchase()
