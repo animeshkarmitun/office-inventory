@@ -107,6 +107,14 @@
                         <li class="nav-item"><a class="nav-link {{ request()->routeIs('depreciation.report') ? 'active' : '' }}" href="{{ route('depreciation.report') }}" data-bs-toggle="tooltip" data-bs-placement="right" title="Depreciation Report"><i class="bi bi-graph-up"></i> <span class="link-text">Depreciation Report</span></a></li>
                         @if(Auth::user()->role === 'super_admin')
                             <li class="nav-item"><a class="nav-link {{ request()->routeIs('user-management.*') ? 'active' : '' }}" href="{{ route('user-management.index') }}" data-bs-toggle="tooltip" data-bs-placement="right" title="User Management"><i class="bi bi-person-gear"></i> <span class="link-text">User Management</span></a></li>
+                            <li class="nav-item">
+                                <form id="clear-cache-form" action="{{ route('superadmin.clear-cache') }}" method="POST" style="display:inline;">
+                                    @csrf
+                                    <button type="submit" class="nav-link btn btn-link text-start w-100 p-0" onclick="return confirm('Are you sure you want to clear the cache?')" data-bs-toggle="tooltip" data-bs-placement="right" title="Clear Cache">
+                                        <i class="bi bi-arrow-clockwise"></i> <span class="link-text">Clear Cache</span>
+                                    </button>
+                                </form>
+                            </li>
                         @endif
                         @if(in_array(Auth::user()->role, ['super_admin', 'admin']))
                             <li class="nav-item"><a class="nav-link {{ request()->routeIs('floor.*') ? 'active' : '' }}" href="{{ route('floor.index') }}" data-bs-toggle="tooltip" data-bs-placement="right" title="Floor Management"><i class="bi bi-building"></i> <span class="link-text">Floor Management</span></a></li>

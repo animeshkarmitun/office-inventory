@@ -145,3 +145,14 @@ Route::resource('purchase', PurchaseController::class)->only(['index', 'create',
 
 Route::get('/public-clear-cache', [\App\Http\Controllers\AdminController::class, 'clearCache'])->name('public.clear-cache');
 
+// Superadmin cache clear route
+Route::middleware(['auth', 'role:super_admin'])->group(function () {
+    Route::post('/superadmin/clear-cache', function () {
+        \Artisan::call('cache:clear');
+        \Artisan::call('config:clear');
+        \Artisan::call('view:clear');
+        \Artisan::call('route:clear');
+        return back()->with(['message' => 'Cache cleared successfully!', 'alert' => 'alert-success']);
+    })->name('superadmin.clear-cache');
+});
+
