@@ -30,6 +30,6 @@ class LoginController extends Controller
             return redirect()->route('dashboard')->with(['message' => 'Login successful', 'alert' => 'alert-success']);
         }
 
-        return redirect()->route('index')->with(['message' => 'Failed login', 'alert' => 'alert-danger']);
+        return redirect()->route('index')->with(['message' => 'Invalid credentials', 'alert' => 'alert-danger']);
     }
 }

@@ -12,7 +12,9 @@ class DashboardController extends Controller
     {
         if (auth()->check()) {
             $role = auth()->user()->role;
-            if ($role === 'admin') {
+            if ($role === 'super_admin') {
+                return redirect()->route('user-management.index');
+            } elseif ($role === 'admin') {
                 return redirect()->route('admin.dashboard');
             } elseif ($role === 'asset_manager') {
                 return redirect()->route('asset-manager.dashboard');

@@ -12,6 +12,7 @@ use App\Http\Controllers\SignoutController;
 use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\AssetMovementController;
 use App\Http\Controllers\PurchaseController;
+use App\Http\Controllers\UserManagementController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -42,6 +43,11 @@ Route::middleware('auth')->group(function () {
 
     // Dashboard
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    // User Management (Super Admin Only)
+    Route::middleware('role:super_admin')->group(function () {
+        Route::resource('user-management', UserManagementController::class);
+    });
 
     // Item
     Route::controller(ItemController::class)->prefix('item')->name('item')->group(function () {

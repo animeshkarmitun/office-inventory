@@ -105,6 +105,9 @@
                         <li class="nav-item"><a class="nav-link {{ request()->routeIs('department') ? 'active' : '' }}" href="{{ route('department') }}" data-bs-toggle="tooltip" data-bs-placement="right" title="Department"><i class="bi bi-building"></i> <span class="link-text">Department</span></a></li>
                         <li class="nav-item"><a class="nav-link {{ request()->routeIs('borrower') ? 'active' : '' }}" href="{{ route('borrower') }}" data-bs-toggle="tooltip" data-bs-placement="right" title="Borrower"><i class="bi bi-people"></i> <span class="link-text">Borrower</span></a></li>
                         <li class="nav-item"><a class="nav-link {{ request()->routeIs('depreciation.report') ? 'active' : '' }}" href="{{ route('depreciation.report') }}" data-bs-toggle="tooltip" data-bs-placement="right" title="Depreciation Report"><i class="bi bi-graph-up"></i> <span class="link-text">Depreciation Report</span></a></li>
+                        @if(Auth::user()->role === 'super_admin')
+                            <li class="nav-item"><a class="nav-link {{ request()->routeIs('user-management.*') ? 'active' : '' }}" href="{{ route('user-management.index') }}" data-bs-toggle="tooltip" data-bs-placement="right" title="User Management"><i class="bi bi-person-gear"></i> <span class="link-text">User Management</span></a></li>
+                        @endif
                     @endauth
                 </ul>
                 <div class="user-section mt-auto p-3">
