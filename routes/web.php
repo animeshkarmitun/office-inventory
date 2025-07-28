@@ -140,6 +140,7 @@ Route::middleware(['auth', 'role:employee'])->group(function () {
 
 Route::get('/depreciation-report', [ItemController::class, 'depreciationReport'])->name('depreciation.report');
 Route::get('item/{item}/history', [App\Http\Controllers\ItemController::class, 'history'])->name('item.history');
+Route::get('borrower/{borrower}/history', [App\Http\Controllers\BorrowerController::class, 'history'])->name('borrower.history');
 
 Route::resource('purchase', PurchaseController::class)->only(['index', 'create', 'store', 'show', 'edit', 'update', 'destroy']);
 

@@ -99,6 +99,15 @@ class BorrowerController extends Controller
         return redirect()->route('borrower')->with(['message' => 'Borrower updated', 'alert' => 'alert-success']);
     }
 
+    public function history(Borrower $borrower)
+    {
+        $history = Borrower::where('name', $borrower->name)
+            ->with(['item', 'department', 'user'])
+            ->orderByDesc('created_at')
+            ->get();
+        return view('pages.borrower.history', compact('borrower', 'history'));
+    }
+
     public function changeItemStatus($id)
     {
         $item = Item::find($id);

@@ -24,7 +24,7 @@
             @foreach ($borrowers as $borrower)
             <tr>
                 <th scope="row">{{ $borrower->id }}</th>
-                <td>{{ $borrower->name }}</td>
+                <td><a href="{{ route('borrower.history', $borrower->id) }}">{{ $borrower->name }}</a></td>
                 <td>
                     @if ($borrower->status == 1)
                     <span class="bg-success btn text-white">Active</span>
