@@ -23,7 +23,7 @@
         @foreach ($items as $item)
         <tr>
             <th scope="row">{{ $item->id }}</th>
-            <td>{{ $item->name }}</td>
+            <td><a href="{{ route('item.history', $item->id) }}">{{ $item->name }}</a></td>
             <td>{{ $item->serial_number }}</td>
             <td>{{ $item->asset_tag ?? 'N/A' }}</td>
             <td>{{ $item->barcode ?? 'N/A' }}</td>

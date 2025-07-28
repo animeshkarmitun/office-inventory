@@ -314,4 +314,14 @@ class ItemController extends Controller
         $filename = 'items_template_' . date('Y-m-d') . '.xlsx';
         return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\ItemsTemplateExport, $filename);
     }
+
+    public function history(Item $item)
+    {
+        $item->load(['floor', 'room', 'assignedUser']);
+        $movements = \App\Models\AssetMovement::where('item_id', $item->id)
+            ->with(['user', 'fromRoom', 'toRoom', 'fromFloor', 'toFloor'])
+            ->orderByDesc('created_at')
+            ->get();
+        return view('pages.item.history', compact('item', 'movements'));
+    }
 }
