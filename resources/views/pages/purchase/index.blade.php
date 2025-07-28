@@ -4,6 +4,10 @@
 <div class="container">
     <h1 class="text-decoration-underline mb-4">Purchases</h1>
     <a href="{{ route('purchase.create') }}" class="btn btn-primary mb-3">Add Purchase</a>
+    <form method="GET" action="{{ route('purchase.index') }}" class="mb-3 d-flex" style="max-width: 400px;">
+        <input type="text" name="search" class="form-control me-2" placeholder="Search by supplier, invoice, or date..." value="{{ request('search') }}">
+        <button type="submit" class="btn btn-outline-primary">Search</button>
+    </form>
     @include('inc.alert')
     <table class="table table-bordered table-striped align-middle">
         <thead>
@@ -20,7 +24,13 @@
             @foreach($purchases as $purchase)
             <tr>
                 <td>{{ $purchase->id }}</td>
-                <td>{{ $purchase->supplier ? $purchase->supplier->name : '-' }}</td>
+                <td>
+                    @if($purchase->supplier)
+                        <a href="{{ route('supplier.purchases', $purchase->supplier->id) }}">{{ $purchase->supplier->name }}</a>
+                    @else
+                        -
+                    @endif
+                </td>
                 <td>{{ $purchase->invoice_number }}</td>
                 <td>{{ $purchase->purchase_date ? $purchase->purchase_date->format('d-M-Y') : '-' }}</td>
                 <td>{{ number_format($purchase->total_value, 2) }}</td>

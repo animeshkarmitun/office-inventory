@@ -88,4 +88,10 @@ class SupplierController extends Controller
 
         return redirect()->route('supplier')->with(['message' => 'Supplier updated', 'alert' => 'alert-success']);
     }
+
+    public function purchases(Supplier $supplier)
+    {
+        $purchases = $supplier->purchases()->with(['items'])->orderByDesc('purchase_date')->get();
+        return view('pages.supplier.purchases', compact('supplier', 'purchases'));
+    }
 }

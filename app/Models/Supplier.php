@@ -32,6 +32,6 @@ class Supplier extends Model
 
     public function purchases()
     {
-        return $this->hasMany(Purchase::class);
+        return $this->hasMany(\App\Models\Purchase::class);
     }
 }

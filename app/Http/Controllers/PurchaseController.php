@@ -8,9 +8,20 @@ use Illuminate\Http\Request;
 
 class PurchaseController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $purchases = \App\Models\Purchase::with('supplier')->orderBy('purchase_date', 'desc')->get();
+        $query = \App\Models\Purchase::with('supplier');
+        if ($request->filled('search')) {
+            $search = $request->input('search');
+            $query->where(function($q) use ($search) {
+                $q->whereHas('supplier', function($sq) use ($search) {
+                    $sq->where('name', 'like', "%$search%");
+                })
+                ->orWhere('invoice_number', 'like', "%$search%")
+                ->orWhereDate('purchase_date', $search);
+            });
+        }
+        $purchases = $query->orderBy('purchase_date', 'desc')->get();
         return view('pages.purchase.index', compact('purchases'));
     }
 
