@@ -13,22 +13,14 @@
                 </div>
                 <div class="card-body text-center">
                     @if($item->image)
-                        <img src="{{ asset('storage/' . $item->image) }}" 
-                             alt="Image of {{ $item->name }}" 
-                             class="img-fluid rounded shadow-sm" 
-                             style="max-height: 300px; max-width: 100%; object-fit: contain;"
-                             onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
-                        <div class="placeholder-image" style="display: none;">
-                            <div class="bg-light rounded d-flex align-items-center justify-content-center" style="height: 300px; border: 2px dashed #dee2e6;">
-                                <div class="text-center">
-                                    <i class="fas fa-image fa-4x text-muted mb-3"></i>
-                                    <p class="text-muted mb-2">Image not available</p>
-                                    <small class="text-muted">{{ $item->name }}</small>
-                                </div>
-                            </div>
+                        <div style="max-height: 300px; max-width: 100%; overflow: hidden;">
+                            {!! \App\Helpers\ImageHelper::responsiveImage($item->image, 'Image of ' . $item->name, [
+                                'class' => 'img-fluid rounded shadow-sm',
+                                'style' => 'max-height: 300px; max-width: 100%; object-fit: contain;'
+                            ]) !!}
                         </div>
                         <div class="mt-2">
-                            <a href="{{ asset('storage/' . $item->image) }}" 
+                            <a href="{{ \App\Helpers\ImageHelper::getOriginalUrl($item->image) }}" 
                                target="_blank" 
                                class="btn btn-sm btn-outline-primary">
                                 <i class="fas fa-external-link-alt"></i> View Full Size

@@ -5,12 +5,20 @@ namespace App\Http\Controllers;
 use App\Models\Category;
 use App\Models\Item;
 use App\Models\Supplier;
+use App\Services\ImageService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 
 class ItemController extends Controller
 {
+    protected $imageService;
+
+    public function __construct(ImageService $imageService)
+    {
+        $this->imageService = $imageService;
+    }
+
     public function index(Request $request)
     {
         $query = Item::query();
@@ -103,13 +111,18 @@ class ItemController extends Controller
             $fields['depreciation_cost'] = ($request->value * $request->depreciation_rate) / 100;
         }
 
-        // Handle image upload
+        // Handle image upload using ImageService
         $imagePath = null;
         if ($request->hasFile('image')) {
-            $image = $request->file('image');
-            $filename = 'items/' . uniqid('item_') . '.' . $image->getClientOriginalExtension();
-            $image->storeAs('public', $filename);
-            $imagePath = $filename;
+            $result = $this->imageService->processAndStore($request->file('image'));
+            
+            if ($result['success']) {
+                $imagePath = $result['processed_path'];
+            } else {
+                return redirect()->back()
+                    ->withInput()
+                    ->withErrors(['image' => 'Image upload failed: ' . $result['error']]);
+            }
         }
         $fields['image'] = $imagePath;
 
@@ -180,6 +193,12 @@ class ItemController extends Controller
     public function destroy($id)
     {
         $item = Item::find($id);
+        
+        // Delete associated images if they exist
+        if ($item->image) {
+            $this->imageService->deleteImage($item->image);
+        }
+        
         $item->delete();
 
         return redirect()->route('item')->with(['message' => 'Item deleted', 'alert' => 'alert-success']);
@@ -223,16 +242,33 @@ class ItemController extends Controller
             'room_number' => 'required|string|max:255',
             'location' => 'nullable|string|max:255',
             'assigned_to' => 'nullable|exists:users,id',
-            'condition' => 'nullable|string|max:255'
+            'condition' => 'nullable|string|max:255',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048'
         ]);
 
         $item = Item::findOrFail($id);
         
-        $updateData = $request->all();
+        $updateData = $request->except(['image']);
         
         // Calculate depreciation cost automatically if value and depreciation rate are provided
         if ($request->filled('value') && $request->filled('depreciation_rate')) {
             $updateData['depreciation_cost'] = ($request->value * $request->depreciation_rate) / 100;
+        }
+
+        // Handle image update using ImageService
+        if ($request->hasFile('image')) {
+            $result = $this->imageService->updateImage(
+                $request->file('image'), 
+                $item->image ?? ''
+            );
+            
+            if ($result['success']) {
+                $updateData['image'] = $result['processed_path'];
+            } else {
+                return redirect()->back()
+                    ->withInput()
+                    ->withErrors(['image' => 'Image update failed: ' . $result['error']]);
+            }
         }
         
         $item->update($updateData);
