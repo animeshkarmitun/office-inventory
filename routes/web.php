@@ -118,6 +118,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/asset/{id}/move', [AssetMovementController::class, 'create'])->name('asset.movement.create');
     Route::post('/asset/{id}/move', [AssetMovementController::class, 'store'])->name('asset.movement.store');
     Route::get('/asset/movement/{id}', [AssetMovementController::class, 'show'])->name('asset.movement.show');
+
+    // Purchase
+    Route::resource('purchase', PurchaseController::class)->only(['index', 'create', 'store', 'show', 'edit', 'update', 'destroy']);
 });
 
 // Admin routes
@@ -142,8 +145,6 @@ Route::get('/depreciation-report', [ItemController::class, 'depreciationReport']
 Route::get('item/{item}/history', [App\Http\Controllers\ItemController::class, 'history'])->name('item.history');
 Route::get('borrower/{borrower}/history', [App\Http\Controllers\BorrowerController::class, 'history'])->name('borrower.history');
 Route::get('supplier/{supplier}/purchases', [App\Http\Controllers\SupplierController::class, 'purchases'])->name('supplier.purchases');
-
-Route::resource('purchase', PurchaseController::class)->only(['index', 'create', 'store', 'show', 'edit', 'update', 'destroy']);
 
 
 Route::get('/public-clear-cache', [\App\Http\Controllers\AdminController::class, 'clearCache'])->name('public.clear-cache');

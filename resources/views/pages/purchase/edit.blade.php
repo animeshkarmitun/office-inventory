@@ -8,7 +8,7 @@
         @csrf
         @method('PUT')
         <div class="row mb-3">
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <label for="supplier_id" class="form-label">Supplier <span class="text-danger">*</span></label>
                 <select name="supplier_id" id="supplier_id" class="form-select" required>
                     <option value="">-- Select Supplier --</option>
@@ -17,13 +17,43 @@
                     @endforeach
                 </select>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <label for="invoice_number" class="form-label">Invoice Number <span class="text-danger">*</span></label>
                 <input type="text" name="invoice_number" id="invoice_number" class="form-control" value="{{ $purchase->invoice_number }}" required>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <label for="purchase_date" class="form-label">Purchase Date <span class="text-danger">*</span></label>
                 <input type="date" name="purchase_date" id="purchase_date" class="form-control" value="{{ $purchase->purchase_date->format('Y-m-d') }}" required>
+            </div>
+            <div class="col-md-3">
+                <label for="department_id" class="form-label">Department <span class="text-danger">*</span></label>
+                <select name="department_id" id="department_id" class="form-select" required>
+                    <option value="">-- Select Department --</option>
+                    @foreach($departments as $department)
+                        <option value="{{ $department->id }}" {{ $department->id == $purchase->department_id ? 'selected' : '' }}>{{ $department->name }} (Level {{ $department->location }})</option>
+                    @endforeach
+                </select>
+            </div>
+        </div>
+
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <label for="purchased_by" class="form-label">Purchased By <span class="text-danger">*</span></label>
+                <select name="purchased_by" id="purchased_by" class="form-select" required>
+                    <option value="">-- Select User --</option>
+                    @foreach($users as $user)
+                        <option value="{{ $user->id }}" {{ $user->id == $purchase->purchased_by ? 'selected' : '' }}>{{ $user->name }} ({{ $user->email }})</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label for="received_by" class="form-label">Received By <span class="text-danger">*</span></label>
+                <select name="received_by" id="received_by" class="form-select" required>
+                    <option value="">-- Select User --</option>
+                    @foreach($users as $user)
+                        <option value="{{ $user->id }}" {{ $user->id == $purchase->received_by ? 'selected' : '' }}>{{ $user->name }} ({{ $user->email }})</option>
+                    @endforeach
+                </select>
             </div>
         </div>
         <div class="row mb-3">

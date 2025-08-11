@@ -12,10 +12,11 @@
     <table class="table table-bordered table-striped align-middle">
         <thead>
             <tr>
-                <th>ID</th>
+                <th>Purchase #</th>
                 <th>Supplier</th>
                 <th>Invoice Number</th>
                 <th>Date</th>
+                <th>Department</th>
                 <th>Total Value</th>
                 <th>Actions</th>
             </tr>
@@ -23,7 +24,7 @@
         <tbody>
             @foreach($purchases as $purchase)
             <tr>
-                <td>{{ $purchase->id }}</td>
+                <td>{{ $purchase->purchase_number ?? 'PUR-' . $purchase->id }}</td>
                 <td>
                     @if($purchase->supplier)
                         <a href="{{ route('supplier.purchases', $purchase->supplier->id) }}">{{ $purchase->supplier->name }}</a>
@@ -33,6 +34,7 @@
                 </td>
                 <td>{{ $purchase->invoice_number }}</td>
                 <td>{{ $purchase->purchase_date ? $purchase->purchase_date->format('d-M-Y') : '-' }}</td>
+                <td>{{ $purchase->department ? $purchase->department->name : '-' }}</td>
                 <td>{{ number_format($purchase->total_value, 2) }}</td>
                 <td>
                     <a href="{{ route('purchase.show', $purchase->id) }}" class="btn btn-info btn-sm">View</a>

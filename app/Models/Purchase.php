@@ -15,6 +15,10 @@ class Purchase extends Model
         'invoice_image',
         'purchase_date',
         'total_value',
+        'purchased_by',
+        'received_by',
+        'department_id',
+        'purchase_number',
     ];
 
     protected $casts = [
@@ -35,5 +39,41 @@ class Purchase extends Model
     public function supplier()
     {
         return $this->belongsTo(Supplier::class);
+    }
+
+    public function purchasedBy()
+    {
+        return $this->belongsTo(User::class, 'purchased_by');
+    }
+
+    public function receivedBy()
+    {
+        return $this->belongsTo(User::class, 'received_by');
+    }
+
+    public function department()
+    {
+        return $this->belongsTo(Department::class);
+    }
+
+    /**
+     * Generate a unique purchase number
+     */
+    public static function generatePurchaseNumber()
+    {
+        $year = date('Y');
+        $lastPurchase = self::whereYear('created_at', $year)
+            ->orderBy('id', 'desc')
+            ->first();
+
+        if ($lastPurchase && $lastPurchase->purchase_number) {
+            // Extract the number from the last purchase number
+            $lastNumber = (int) substr($lastPurchase->purchase_number, -4);
+            $newNumber = $lastNumber + 1;
+        } else {
+            $newNumber = 1;
+        }
+
+        return 'PUR-' . $year . '-' . str_pad($newNumber, 4, '0', STR_PAD_LEFT);
     }
 } 
