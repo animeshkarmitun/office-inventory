@@ -93,8 +93,7 @@
                     <div class="mb-3">
                         <label for="depreciation_method" class="form-label">Depreciation Method</label>
                         <select name="depreciation_method" class="form-select @error('depreciation_method') is-invalid @enderror" id="depreciation_method">
-                            <option value="">-- Select Method --</option>
-                            <option value="straight_line" {{ old('depreciation_method') == 'straight_line' ? 'selected' : '' }}>Straight Line</option>
+                            <option value="straight_line" {{ old('depreciation_method', 'straight_line') == 'straight_line' ? 'selected' : '' }}>Straight Line</option>
                             <option value="reducing_balance" {{ old('depreciation_method') == 'reducing_balance' ? 'selected' : '' }}>Reducing Balance</option>
                         </select>
                         @error('depreciation_method')

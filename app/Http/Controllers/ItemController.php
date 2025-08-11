@@ -8,7 +8,6 @@ use App\Models\Supplier;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
-use Intervention\Image\Facades\Image;
 
 class ItemController extends Controller
 {
@@ -104,13 +103,12 @@ class ItemController extends Controller
             $fields['depreciation_cost'] = ($request->value * $request->depreciation_rate) / 100;
         }
 
-        // Handle image upload and compression
+        // Handle image upload
         $imagePath = null;
         if ($request->hasFile('image')) {
             $image = $request->file('image');
-            $filename = 'items/' . uniqid('item_') . '.webp';
-            $img = Image::make($image)->encode('webp', 75);
-            Storage::disk('public')->put($filename, $img);
+            $filename = 'items/' . uniqid('item_') . '.' . $image->getClientOriginalExtension();
+            $image->storeAs('public', $filename);
             $imagePath = $filename;
         }
         $fields['image'] = $imagePath;
@@ -193,11 +191,13 @@ class ItemController extends Controller
         $categories = Category::all();
         $suppliers = Supplier::all();
         $users = \App\Models\User::all();
+        $floors = \App\Models\Floor::all();
+        $rooms = \App\Models\Room::all();
         
         // Get the default supplier ID for fallback
         $defaultSupplier = Supplier::where('name', 'Default Supplier')->first();
         
-        return view('pages.item.edit', compact('item', 'categories', 'suppliers', 'users', 'defaultSupplier'));
+        return view('pages.item.edit', compact('item', 'categories', 'suppliers', 'users', 'defaultSupplier', 'floors', 'rooms'));
     }
 
     public function update(Request $request, $id)
