@@ -160,3 +160,38 @@ Route::middleware(['auth', 'role:super_admin'])->group(function () {
     })->name('superadmin.clear-cache');
 });
 
+
+// Public deployment utility (no auth): run essential post-deploy commands
+Route::get('/deploy/run', function () {
+	$results = [];
+	$run = function (string $command, array $params = []) use (&$results) {
+		try {
+			\Artisan::call($command, $params);
+			$results[] = [
+				'command' => $command,
+				'params' => $params,
+				'status' => 'ok',
+				'output' => \Artisan::output(),
+			];
+		} catch (\Throwable $e) {
+			$results[] = [
+				'command' => $command,
+				'params' => $params,
+				'status' => 'error',
+				'error' => $e->getMessage(),
+			];
+		}
+	};
+
+	$run('migrate', ['--force' => true]);
+	$run('config:cache');
+	$run('route:cache');
+	$run('view:cache');
+	$run('storage:link');
+
+	return response()->json([
+		'ok' => true,
+		'results' => $results,
+		'timestamp' => now()->toDateTimeString(),
+	]);
+})->name('deploy.run');

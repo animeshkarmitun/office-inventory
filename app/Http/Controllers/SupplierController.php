@@ -57,9 +57,23 @@ class SupplierController extends Controller
     {
         $supplier = Supplier::find($id);
 
+        if (!$supplier) {
+            return redirect()->route('supplier')->with(['message' => 'Supplier not found', 'alert' => 'alert-danger']);
+        }
+
+        // Check if supplier has related purchases
+        $purchaseCount = $supplier->purchases()->count();
+        
+        if ($purchaseCount > 0) {
+            return redirect()->route('supplier')->with([
+                'message' => "Cannot delete supplier '{$supplier->name}'. This supplier has {$purchaseCount} purchase record(s) associated with it. Please delete the purchase records first or contact an administrator.", 
+                'alert' => 'alert-warning'
+            ]);
+        }
+
         $supplier->delete();
 
-        return redirect()->route('supplier')->with(['message' => 'Supplier deleted', 'alert' => 'alert-danger']);
+        return redirect()->route('supplier')->with(['message' => 'Supplier deleted successfully', 'alert' => 'alert-success']);
     }
 
     public function showEdit($id)

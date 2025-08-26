@@ -206,6 +206,28 @@ class PurchaseController extends Controller
 
     public function destroy($id)
     {
-        // Delete a purchase
+        $purchase = \App\Models\Purchase::find($id);
+
+        if (!$purchase) {
+            return redirect()->route('purchase.index')->with(['message' => 'Purchase not found', 'alert' => 'alert-danger']);
+        }
+
+        // Check if purchase has related items
+        $itemCount = \App\Models\Item::where('purchase_id', $purchase->id)->count();
+        
+        if ($itemCount > 0) {
+            return redirect()->route('purchase.index')->with([
+                'message' => "Cannot delete purchase '{$purchase->purchase_number}'. This purchase has {$itemCount} inventory item(s) associated with it. Please delete the inventory items first or contact an administrator.", 
+                'alert' => 'alert-warning'
+            ]);
+        }
+
+        // Delete purchase items first
+        $purchase->items()->delete();
+        
+        // Delete the purchase
+        $purchase->delete();
+
+        return redirect()->route('purchase.index')->with(['message' => 'Purchase deleted successfully', 'alert' => 'alert-success']);
     }
 } 
