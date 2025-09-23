@@ -422,8 +422,8 @@
 <div class="modal fade" id="addSupplierModal" tabindex="-1" aria-labelledby="addSupplierModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content border-0 shadow-lg">
-            <div class="modal-header bg-primary text-white border-0">
-                <h5 class="modal-title fw-bold" id="addSupplierModalLabel">
+            <div class="modal-header bg-success text-white border-0">
+                <h5 class="modal-title fw-bold text-white" id="addSupplierModalLabel">
                     <i class="fas fa-plus-circle me-2"></i>
                     Add New Supplier
                 </h5>
@@ -513,7 +513,7 @@
     <div class="modal-dialog">
         <div class="modal-content border-0 shadow-lg">
             <div class="modal-header bg-success text-white border-0">
-                <h5 class="modal-title fw-bold" id="addFloorModalLabel">
+                <h5 class="modal-title fw-bold text-white" id="addFloorModalLabel">
                     <i class="fas fa-building me-2"></i>
                     Add New Floor
                 </h5>
@@ -557,8 +557,8 @@
 <div class="modal fade" id="addRoomModal" tabindex="-1" aria-labelledby="addRoomModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content border-0 shadow-lg">
-            <div class="modal-header bg-info text-white border-0">
-                <h5 class="modal-title fw-bold" id="addRoomModalLabel">
+            <div class="modal-header bg-success text-white border-0">
+                <h5 class="modal-title fw-bold text-white" id="addRoomModalLabel">
                     <i class="fas fa-door-open me-2"></i>
                     Add New Room
                 </h5>
