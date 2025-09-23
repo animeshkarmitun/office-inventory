@@ -53,9 +53,11 @@ Route::middleware('auth')->group(function () {
 
     // Floor Management (Super Admin & Admin)
     Route::resource('floor', FloorController::class);
+    Route::post('floor/store-ajax', [FloorController::class, 'storeAjax'])->name('floor.storeAjax');
     
     // Room Management (Super Admin & Admin)
     Route::resource('room', RoomController::class);
+    Route::post('room/store-ajax', [RoomController::class, 'storeAjax'])->name('room.storeAjax');
     Route::get('room/by-floor/{floorId}', [RoomController::class, 'getByFloor'])->name('room.by-floor');
 
     // Item
@@ -78,6 +80,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/', 'index');
         Route::get('/add', 'showAdd')->name('.showAdd');
         Route::post('/add', 'store')->name('.store');
+        Route::post('/store-ajax', 'storeAjax')->name('.storeAjax');
         Route::get('/{id}/delete', 'destroy')->name('.destroy');
         Route::get('/{id}/edit', 'showEdit')->name('.showEdit');
         Route::post('/{id}/edit', 'update')->name('.update');

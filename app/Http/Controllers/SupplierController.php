@@ -53,6 +53,57 @@ class SupplierController extends Controller
         return redirect()->route('supplier')->with(['message' => 'Supplier added', 'alert' => 'alert-success']);
     }
 
+    public function storeAjax(Request $request)
+    {
+        try {
+            // Debug: Log the incoming request
+            \Log::info('AJAX Supplier Request:', $request->all());
+            
+            $request->validate([
+                'name' => 'required|string|max:255',
+                'incharge_name' => 'required|string|max:255',
+                'contact_number' => 'required|string|max:20',
+                'email' => 'nullable|email|max:255',
+                'address' => 'nullable|string',
+                'tax_number' => 'nullable|string|max:50',
+                'payment_terms' => 'nullable|string|max:255',
+                'notes' => 'nullable|string'
+            ]);
+
+            $supplier = Supplier::create($request->all());
+            
+            // Debug: Log successful creation
+            \Log::info('Supplier created successfully:', ['id' => $supplier->id, 'name' => $supplier->name]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Supplier added successfully',
+                'supplier' => [
+                    'id' => $supplier->id,
+                    'name' => $supplier->name,
+                    'incharge_name' => $supplier->incharge_name,
+                    'contact_number' => $supplier->contact_number,
+                    'email' => $supplier->email,
+                    'address' => $supplier->address,
+                    'tax_number' => $supplier->tax_number,
+                    'payment_terms' => $supplier->payment_terms,
+                    'notes' => $supplier->notes
+                ]
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while adding the supplier: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
     public function destroy($id)
     {
         $supplier = Supplier::find($id);

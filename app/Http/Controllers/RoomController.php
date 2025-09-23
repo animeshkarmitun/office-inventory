@@ -52,6 +52,59 @@ class RoomController extends Controller
             ->with(['message' => 'Room created successfully', 'alert' => 'alert-success']);
     }
 
+    public function storeAjax(Request $request)
+    {
+        try {
+            $request->validate([
+                'floor_id' => 'required|exists:floors,id',
+                'name' => 'required|string|max:255',
+                'room_number' => 'required|string|max:255',
+                'description' => 'nullable|string',
+                'status' => 'required|in:active,inactive,maintenance',
+            ]);
+
+            // Check if room number already exists in the same floor
+            $existingRoom = Room::where('floor_id', $request->floor_id)
+                ->where('room_number', $request->room_number)
+                ->first();
+
+            if ($existingRoom) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Room number already exists in this floor.',
+                    'errors' => ['room_number' => ['Room number already exists in this floor.']]
+                ], 422);
+            }
+
+            $room = Room::create($request->all());
+            $room->load('floor');
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Room added successfully',
+                'room' => [
+                    'id' => $room->id,
+                    'name' => $room->name,
+                    'room_number' => $room->room_number,
+                    'description' => $room->description,
+                    'status' => $room->status,
+                    'floor_name' => $room->floor->name
+                ]
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while adding the room: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
     public function show(Room $room)
     {
         $room->load('floor');

@@ -4,6 +4,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ config('app.name', 'Inventory Management System') }}</title>
     <!-- Google Fonts: Roboto -->
     <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" rel="stylesheet">
@@ -54,8 +55,24 @@
             margin-left: 0.5rem;
             outline: none;
             box-shadow: none;
+            transition: all 0.2s ease;
         }
         .sidebar .sidebar-collapse-btn:focus { outline: none; box-shadow: none; }
+        .sidebar .sidebar-collapse-btn:hover {
+            background: #343a40;
+            border-radius: 4px;
+        }
+        .sidebar.collapsed .sidebar-collapse-btn {
+            background: #343a40;
+            border-radius: 4px;
+            margin-left: 0;
+            width: 100%;
+            justify-content: center;
+            position: absolute;
+            top: 1rem;
+            left: 0;
+            z-index: 10;
+        }
         .main-content {
             flex: 1 1 0%;
             padding: 2rem;
@@ -110,7 +127,7 @@
                             <li class="nav-item">
                                 <form id="clear-cache-form" action="{{ route('superadmin.clear-cache') }}" method="POST" style="display:inline;">
                                     @csrf
-                                    <button type="submit" class="nav-link btn btn-link text-start w-100 p-0" onclick="return confirm('Are you sure you want to clear the cache?')" data-bs-toggle="tooltip" data-bs-placement="right" title="Clear Cache">
+                                    <button type="submit" class="nav-link btn btn-link text-start w-100" onclick="return confirm('Are you sure you want to clear the cache?')" data-bs-toggle="tooltip" data-bs-placement="right" title="Clear Cache">
                                         <i class="bi bi-arrow-clockwise"></i> <span class="link-text">Clear Cache</span>
                                     </button>
                                 </form>
@@ -163,6 +180,17 @@
             if (sidebarCollapseBtn) {
                 sidebarCollapseBtn.addEventListener('click', function() {
                     sidebar.classList.toggle('collapsed');
+                    
+                    // Change button icon based on sidebar state
+                    const icon = sidebarCollapseBtn.querySelector('i');
+                    if (sidebar.classList.contains('collapsed')) {
+                        icon.className = 'bi bi-chevron-right';
+                        sidebarCollapseBtn.setAttribute('aria-label', 'Expand sidebar');
+                    } else {
+                        icon.className = 'bi bi-list';
+                        sidebarCollapseBtn.setAttribute('aria-label', 'Collapse sidebar');
+                    }
+                    
                     // No margin-left on .main-content, flexbox handles layout
                     // Enable tooltips when collapsed
                     if (sidebar.classList.contains('collapsed')) {
@@ -181,6 +209,7 @@
         });
     </script>
     @yield('scripts')
+    @stack('scripts')
 </body>
 
 </html>

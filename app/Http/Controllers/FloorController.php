@@ -39,6 +39,41 @@ class FloorController extends Controller
             ->with(['message' => 'Floor created successfully', 'alert' => 'alert-success']);
     }
 
+    public function storeAjax(Request $request)
+    {
+        try {
+            $request->validate([
+                'name' => 'required|string|max:255',
+                'serial_number' => 'required|string|max:255|unique:floors,serial_number',
+                'description' => 'nullable|string',
+            ]);
+
+            $floor = Floor::create($request->all());
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Floor added successfully',
+                'floor' => [
+                    'id' => $floor->id,
+                    'name' => $floor->name,
+                    'serial_number' => $floor->serial_number,
+                    'description' => $floor->description
+                ]
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while adding the floor: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
     public function show(Floor $floor)
     {
         $floor->load('rooms');
