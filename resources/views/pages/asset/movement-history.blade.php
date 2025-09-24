@@ -25,7 +25,18 @@
             @forelse ($item->movements as $movement)
             <tr>
                 <td>{{ $movement->created_at->format('Y-m-d H:i') }}</td>
-                <td>{{ $movement->movement_type }}</td>
+                <td>
+                    <span class="badge 
+                        @if($movement->movement_type === 'assignment') bg-primary
+                        @elseif($movement->movement_type === 'transfer') bg-warning
+                        @elseif($movement->movement_type === 'location_change') bg-info
+                        @elseif($movement->movement_type === 'return') bg-success
+                        @elseif($movement->movement_type === 'maintenance') bg-danger
+                        @else bg-secondary
+                        @endif text-white">
+                        {{ ucfirst(str_replace('_', ' ', $movement->movement_type)) }}
+                    </span>
+                </td>
                 <td>{{ $movement->fromUser->name ?? 'N/A' }}</td>
                 <td>{{ $movement->toUser->name ?? 'N/A' }}</td>
                 <td>{{ $movement->from_location ?? 'N/A' }}</td>

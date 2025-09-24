@@ -530,9 +530,9 @@
                     </div>
                     
                     <div class="mb-3">
-                        <label for="modal_floor_serial_number" class="form-label">Serial Number <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="modal_floor_serial_number" name="serial_number" required>
-                        <div class="invalid-feedback"></div>
+                        <label for="modal_floor_serial_number" class="form-label">Serial Number</label>
+                        <input type="text" class="form-control" id="modal_floor_serial_number" value="Auto-generated" readonly>
+                        <div class="form-text">Serial number will be automatically generated when the floor is created.</div>
                     </div>
                     
                     <div class="mb-3">

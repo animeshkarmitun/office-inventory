@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Auth;
 
 class Item extends Model
 {
@@ -59,6 +60,77 @@ class Item extends Model
         'is_approved' => 'boolean'
     ];
 
+    protected static function boot()
+    {
+        parent::boot();
+
+        // Create movement record after item is updated
+        static::updated(function ($item) {
+            $originalAssignedTo = $item->getOriginal('assigned_to');
+            $originalLocation = $item->getOriginal('location');
+            $originalFloorId = $item->getOriginal('floor_id');
+            $originalRoomId = $item->getOriginal('room_id');
+            $originalFloorLevel = $item->getOriginal('floor_level');
+            $originalRoomNumber = $item->getOriginal('room_number');
+            
+            $newAssignedTo = $item->assigned_to;
+            $newLocation = $item->location;
+            $newFloorId = $item->floor_id;
+            $newRoomId = $item->room_id;
+            $newFloorLevel = $item->floor_level;
+            $newRoomNumber = $item->room_number;
+
+            // Check if assignment, location, floor, or room changed
+            $assignmentChanged = $originalAssignedTo != $newAssignedTo;
+            $locationChanged = $originalLocation != $newLocation;
+            $floorChanged = $originalFloorId != $newFloorId || $originalFloorLevel != $newFloorLevel;
+            $roomChanged = $originalRoomId != $newRoomId || $originalRoomNumber != $newRoomNumber;
+
+            if ($assignmentChanged || $locationChanged || $floorChanged || $roomChanged) {
+                // Determine movement type based on what changed
+                $movementType = 'assignment';
+                if ($assignmentChanged && $newAssignedTo) {
+                    $movementType = 'transfer';
+                } elseif (!$assignmentChanged && ($locationChanged || $floorChanged || $roomChanged)) {
+                    $movementType = 'location_change';
+                }
+
+                // Get formatted location strings
+                $fromLocation = self::getFormattedLocationForMovement($originalLocation, $originalFloorId, $originalRoomId, $originalFloorLevel, $originalRoomNumber);
+                $toLocation = self::getFormattedLocationForMovement($newLocation, $newFloorId, $newRoomId, $newFloorLevel, $newRoomNumber);
+
+                \App\Models\AssetMovement::create([
+                    'item_id' => $item->id,
+                    'from_user_id' => $originalAssignedTo,
+                    'to_user_id' => $newAssignedTo,
+                    'from_location' => $fromLocation,
+                    'to_location' => $toLocation,
+                    'movement_type' => $movementType,
+                    'notes' => $movementType === 'location_change' ? 'Location updated via item edit' : 'Assignment updated via item edit',
+                    'moved_by' => Auth::id() ?? \App\Models\User::first()->id ?? 1 // Fallback to first user if no auth
+                ]);
+            }
+        });
+
+        // Create initial movement record when item is created with assignment
+        static::created(function ($item) {
+            if ($item->assigned_to) {
+                $toLocation = self::getFormattedLocationForMovement($item->location, $item->floor_id, $item->room_id, $item->floor_level, $item->room_number);
+                
+                \App\Models\AssetMovement::create([
+                    'item_id' => $item->id,
+                    'from_user_id' => null,
+                    'to_user_id' => $item->assigned_to,
+                    'from_location' => null,
+                    'to_location' => $toLocation,
+                    'movement_type' => 'assignment',
+                    'notes' => 'Initial assignment',
+                    'moved_by' => Auth::id() ?? \App\Models\User::first()->id ?? 1 // Fallback to first user if no auth
+                ]);
+            }
+        });
+    }
+
     public function category()
     {
         return $this->belongsTo(Category::class);
@@ -112,6 +184,86 @@ class Item extends Model
     public function purchase()
     {
         return $this->belongsTo(Purchase::class);
+    }
+
+    /**
+     * Get formatted location with floor and room information
+     */
+    public function getFormattedLocationAttribute()
+    {
+        $locationParts = [];
+        
+        // Add basic location if available
+        if (!empty($this->location)) {
+            $locationParts[] = $this->location;
+        }
+        
+        // Add floor information
+        if ($this->floor) {
+            $floorInfo = $this->floor->name;
+            if ($this->floor->serial_number) {
+                $floorInfo .= " ({$this->floor->serial_number})";
+            }
+            $locationParts[] = "Floor: {$floorInfo}";
+        } elseif (!empty($this->floor_level)) {
+            $locationParts[] = "Floor: {$this->floor_level}";
+        }
+        
+        // Add room information
+        if ($this->room) {
+            $roomInfo = $this->room->name;
+            if ($this->room->room_number) {
+                $roomInfo .= " ({$this->room->room_number})";
+            }
+            $locationParts[] = "Room: {$roomInfo}";
+        } elseif (!empty($this->room_number)) {
+            $locationParts[] = "Room: {$this->room_number}";
+        }
+        
+        return !empty($locationParts) ? implode(' | ', $locationParts) : 'N/A';
+    }
+
+    /**
+     * Get formatted location string for movement records
+     */
+    public static function getFormattedLocationForMovement($location, $floorId, $roomId, $floorLevel, $roomNumber)
+    {
+        $locationParts = [];
+        
+        // Add basic location if available
+        if (!empty($location)) {
+            $locationParts[] = $location;
+        }
+        
+        // Add floor information
+        if ($floorId) {
+            $floor = \App\Models\Floor::find($floorId);
+            if ($floor) {
+                $floorInfo = $floor->name;
+                if ($floor->serial_number) {
+                    $floorInfo .= " ({$floor->serial_number})";
+                }
+                $locationParts[] = "Floor: {$floorInfo}";
+            }
+        } elseif (!empty($floorLevel)) {
+            $locationParts[] = "Floor: {$floorLevel}";
+        }
+        
+        // Add room information
+        if ($roomId) {
+            $room = \App\Models\Room::find($roomId);
+            if ($room) {
+                $roomInfo = $room->name;
+                if ($room->room_number) {
+                    $roomInfo .= " ({$room->room_number})";
+                }
+                $locationParts[] = "Room: {$roomInfo}";
+            }
+        } elseif (!empty($roomNumber)) {
+            $locationParts[] = "Room: {$roomNumber}";
+        }
+        
+        return !empty($locationParts) ? implode(' | ', $locationParts) : 'N/A';
     }
 
     /**

@@ -27,4 +27,27 @@ class Floor extends Model
         $this->room_count = $this->rooms()->count();
         $this->save();
     }
+
+    /**
+     * Generate the next floor serial number
+     */
+    public static function generateSerialNumber()
+    {
+        $year = date('Y');
+        $lastFloor = self::where('serial_number', 'like', "FL-{$year}%")
+                        ->orderBy('serial_number', 'desc')
+                        ->first();
+        
+        if ($lastFloor) {
+            // Extract the number from the last serial number
+            preg_match('/FL-' . $year . '-(\d+)/', $lastFloor->serial_number, $matches);
+            $nextNumber = (int)$matches[1] + 1;
+        } else {
+            $nextNumber = 1;
+        }
+        
+        $serialNumber = "FL-{$year}-" . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
+        
+        return $serialNumber;
+    }
 }

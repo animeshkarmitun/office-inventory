@@ -29,11 +29,13 @@ class FloorController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'serial_number' => 'required|string|max:255|unique:floors,serial_number',
             'description' => 'nullable|string',
         ]);
 
-        Floor::create($request->all());
+        $floorData = $request->except(['serial_number']);
+        $floorData['serial_number'] = Floor::generateSerialNumber();
+
+        Floor::create($floorData);
 
         return redirect()->route('floor.index')
             ->with(['message' => 'Floor created successfully', 'alert' => 'alert-success']);
@@ -44,11 +46,13 @@ class FloorController extends Controller
         try {
             $request->validate([
                 'name' => 'required|string|max:255',
-                'serial_number' => 'required|string|max:255|unique:floors,serial_number',
                 'description' => 'nullable|string',
             ]);
 
-            $floor = Floor::create($request->all());
+            $floorData = $request->except(['serial_number']);
+            $floorData['serial_number'] = Floor::generateSerialNumber();
+
+            $floor = Floor::create($floorData);
 
             return response()->json([
                 'success' => true,
@@ -89,11 +93,11 @@ class FloorController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'serial_number' => 'required|string|max:255|unique:floors,serial_number,' . $floor->id,
             'description' => 'nullable|string',
         ]);
 
-        $floor->update($request->all());
+        $updateData = $request->except(['serial_number']);
+        $floor->update($updateData);
 
         return redirect()->route('floor.index')
             ->with(['message' => 'Floor updated successfully', 'alert' => 'alert-success']);

@@ -23,11 +23,8 @@
 
                         <div class="mb-3">
                             <label for="serial_number" class="form-label">Serial Number</label>
-                            <input type="text" class="form-control @error('serial_number') is-invalid @enderror" id="serial_number" name="serial_number" value="{{ old('serial_number', $floor->serial_number) }}" required>
-                            <div class="form-text">Unique identifier for the floor</div>
-                            @error('serial_number')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
+                            <input type="text" class="form-control" id="serial_number" value="{{ $floor->serial_number }}" readonly>
+                            <div class="form-text">Serial number is automatically generated and cannot be changed.</div>
                         </div>
 
                         <div class="mb-3">

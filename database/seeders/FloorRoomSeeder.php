@@ -14,22 +14,20 @@ class FloorRoomSeeder extends Seeder
         $floors = [
             [
                 'name' => 'Ground Floor',
-                'serial_number' => 'GF-001',
                 'description' => 'Main entrance and reception area',
             ],
             [
                 'name' => 'First Floor',
-                'serial_number' => 'FF-001',
                 'description' => 'Office spaces and meeting rooms',
             ],
             [
                 'name' => 'Second Floor',
-                'serial_number' => 'SF-001',
                 'description' => 'Department offices and conference rooms',
             ],
         ];
 
         foreach ($floors as $floorData) {
+            $floorData['serial_number'] = Floor::generateSerialNumber();
             $floor = Floor::create($floorData);
 
             // Create sample rooms for each floor

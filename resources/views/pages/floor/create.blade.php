@@ -22,11 +22,8 @@
 
                         <div class="mb-3">
                             <label for="serial_number" class="form-label">Serial Number</label>
-                            <input type="text" class="form-control @error('serial_number') is-invalid @enderror" id="serial_number" name="serial_number" value="{{ old('serial_number') }}" required>
-                            <div class="form-text">Unique identifier for the floor (e.g., FL-001, Ground Floor, etc.)</div>
-                            @error('serial_number')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
+                            <input type="text" class="form-control" id="serial_number" value="Auto-generated" readonly>
+                            <div class="form-text">Serial number will be automatically generated when the floor is created.</div>
                         </div>
 
                         <div class="mb-3">

@@ -17,7 +17,7 @@ class AssetMovementController extends Controller
      */
     public function index($itemId)
     {
-        $item = Item::with(['movements.fromUser', 'movements.toUser', 'movements.movedBy'])->findOrFail($itemId);
+        $item = Item::with(['movements.fromUser', 'movements.toUser', 'movements.movedBy', 'floor', 'room'])->findOrFail($itemId);
         return view('pages.asset.movement-history', compact('item'));
     }
 
@@ -42,7 +42,7 @@ class AssetMovementController extends Controller
     public function store(Request $request, $itemId)
     {
         $request->validate([
-            'movement_type' => 'required|in:assignment,transfer,return,maintenance',
+            'movement_type' => 'required|in:assignment,transfer,return,maintenance,location_change',
             'to_user_id' => 'required_if:movement_type,assignment,transfer|exists:users,id',
             'to_location' => 'required|string|max:255',
             'notes' => 'nullable|string'
