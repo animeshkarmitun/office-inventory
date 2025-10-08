@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Models\Department;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
@@ -23,7 +24,8 @@ class UserManagementController extends Controller
 
     public function create()
     {
-        return view('pages.user-management.create');
+        $departments = Department::all();
+        return view('pages.user-management.create', compact('departments'));
     }
 
     public function store(Request $request)
@@ -33,6 +35,7 @@ class UserManagementController extends Controller
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:8|confirmed',
             'role' => 'required|in:admin,asset_manager,employee',
+            'department_id' => 'required|exists:departments,id',
         ]);
 
         $user = User::create([
@@ -41,6 +44,7 @@ class UserManagementController extends Controller
             'password' => Hash::make($request->password),
             'role' => $request->role,
             'is_admin' => $request->role === 'admin',
+            'department_id' => $request->department_id,
         ]);
 
         return redirect()->route('user-management.index')
@@ -50,7 +54,8 @@ class UserManagementController extends Controller
     public function edit($id)
     {
         $user = User::findOrFail($id);
-        return view('pages.user-management.edit', compact('user'));
+        $departments = Department::all();
+        return view('pages.user-management.edit', compact('user', 'departments'));
     }
 
     public function update(Request $request, $id)
@@ -62,6 +67,7 @@ class UserManagementController extends Controller
             'email' => 'required|string|email|max:255|unique:users,email,' . $id,
             'role' => 'required|in:admin,asset_manager,employee',
             'password' => 'nullable|string|min:8|confirmed',
+            'department_id' => 'required|exists:departments,id',
         ]);
 
         $user->update([
@@ -69,6 +75,7 @@ class UserManagementController extends Controller
             'email' => $request->email,
             'role' => $request->role,
             'is_admin' => $request->role === 'admin',
+            'department_id' => $request->department_id,
         ]);
 
         if ($request->filled('password')) {
@@ -93,5 +100,68 @@ class UserManagementController extends Controller
 
         return redirect()->route('user-management.index')
             ->with(['message' => 'User deleted successfully', 'alert' => 'alert-success']);
+    }
+
+    public function storeAjax(Request $request)
+    {
+        try {
+            $request->validate([
+                'name' => 'required|string|max:255',
+                'email' => 'nullable|email|unique:users,email',
+                'password' => 'required|string|min:8',
+                'role' => 'required|in:admin,asset_manager,employee',
+                'designation_id' => 'required|exists:designations,id',
+            ]);
+
+            // Get the designation to determine the department
+            $designation = \App\Models\Designation::findOrFail($request->designation_id);
+
+            // Auto-generate email if not provided
+            $email = $request->email;
+            if (empty($email)) {
+                $baseEmail = strtolower(str_replace(' ', '.', $request->name));
+                $email = $baseEmail . '@company.com';
+                
+                // Ensure email is unique
+                $counter = 1;
+                $originalEmail = $email;
+                while (User::where('email', $email)->exists()) {
+                    $email = $baseEmail . $counter . '@company.com';
+                    $counter++;
+                }
+            }
+
+            $user = User::create([
+                'name' => $request->name,
+                'email' => $email,
+                'password' => Hash::make($request->password),
+                'role' => $request->role,
+                'is_admin' => $request->role === 'admin',
+                'department_id' => $designation->department_id,
+                'designation_id' => $request->designation_id,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'User added successfully',
+                'user' => [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'role' => $user->role,
+                ]
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while adding the user: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }

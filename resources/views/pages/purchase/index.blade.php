@@ -18,6 +18,7 @@
                 <th>Date</th>
                 <th>Department</th>
                 <th>Total Value</th>
+                <th>Images</th>
                 <th>Actions</th>
             </tr>
         </thead>
@@ -36,6 +37,13 @@
                 <td>{{ $purchase->purchase_date ? $purchase->purchase_date->format('d-M-Y') : '-' }}</td>
                 <td>{{ $purchase->department ? $purchase->department->name : '-' }}</td>
                 <td>{{ number_format($purchase->total_value, 2) }}</td>
+                <td>
+                    @if($purchase->images->count() > 0)
+                        <span class="badge bg-info">{{ $purchase->images->count() }} image(s)</span>
+                    @else
+                        <span class="text-muted">No images</span>
+                    @endif
+                </td>
                 <td>
                     <a href="{{ route('purchase.show', $purchase->id) }}" class="btn btn-info btn-sm">View</a>
                     <a href="{{ route('purchase.edit', $purchase->id) }}" class="btn btn-warning btn-sm">Edit</a>

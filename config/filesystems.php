@@ -37,7 +37,7 @@ return [
 
         'public' => [
             'driver' => 'local',
-            'root' => env('PUBLIC_PATH') ? rtrim(env('PUBLIC_PATH'), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'storage' : storage_path('app/public'),
+            'root' => storage_path('app/public'),
             'url' => env('APP_URL').'/storage',
             'visibility' => 'public',
         ],
@@ -67,8 +67,7 @@ return [
     */
 
     'links' => [
-        // Prefer explicit PUBLIC_PATH from .env (shared hosting), fallback to default public_path
-        (env('PUBLIC_PATH') ? rtrim(env('PUBLIC_PATH'), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'storage' : public_path('storage')) => storage_path('app/public'),
+        public_path('storage') => storage_path('app/public'),
     ],
 
 ];

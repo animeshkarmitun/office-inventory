@@ -22,8 +22,8 @@
                     <p class="card-text mb-1"><strong>Purchased By:</strong> {{ $purchase->purchasedBy ? $purchase->purchasedBy->name . ' (' . $purchase->purchasedBy->email . ')' : '-' }}</p>
                     <p class="card-text mb-1"><strong>Received By:</strong> {{ $purchase->receivedBy ? $purchase->receivedBy->name . ' (' . $purchase->receivedBy->email . ')' : '-' }}</p>
                     @if($purchase->invoice_image)
-                        <p class="card-text mb-1"><strong>Invoice Image:</strong><br>
-                            <a href="{{ asset('storage/' . $purchase->invoice_image) }}" target="_blank" class="btn btn-sm btn-outline-primary">View Invoice</a>
+                        <p class="card-text mb-1"><strong>Main Invoice Image:</strong><br>
+                            <a href="{{ asset('storage/' . $purchase->invoice_image) }}" target="_blank" class="btn btn-sm btn-outline-primary">View Main Invoice</a>
                         </p>
                     @endif
                 </div>
@@ -53,5 +53,53 @@
             @endforeach
         </tbody>
     </table>
+
+    @if($purchase->images->count() > 0)
+        <div class="mt-4">
+            <h4>Invoice Images ({{ $purchase->images->count() }} images)</h4>
+            <div class="row">
+                @foreach($purchase->images as $image)
+                    <div class="col-md-3 mb-3">
+                        <div class="card">
+                            <img src="{{ $image->image_url }}" class="card-img-top" style="height: 200px; object-fit: cover;" alt="Invoice Image" data-bs-toggle="modal" data-bs-target="#imageModal{{ $image->id }}">
+                            <div class="card-body p-2">
+                                <h6 class="card-title text-truncate" title="{{ $image->original_name }}">{{ $image->original_name }}</h6>
+                                <small class="text-muted">{{ $image->file_size_human }}</small>
+                                <div class="mt-2">
+                                    <a href="{{ $image->image_url }}" target="_blank" class="btn btn-sm btn-outline-primary">View Full Size</a>
+                                    <form method="POST" action="{{ route('purchase.deleteImage', [$purchase->id, $image->id]) }}" style="display: inline-block;" onsubmit="return confirm('Are you sure you want to delete this image?')">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                                            Delete
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Image Modal -->
+                    <div class="modal fade" id="imageModal{{ $image->id }}" tabindex="-1" aria-labelledby="imageModalLabel{{ $image->id }}" aria-hidden="true">
+                        <div class="modal-dialog modal-lg">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="imageModalLabel{{ $image->id }}">{{ $image->original_name }}</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body text-center">
+                                    <img src="{{ $image->image_url }}" class="img-fluid" alt="Invoice Image">
+                                </div>
+                                <div class="modal-footer">
+                                    <a href="{{ $image->image_url }}" target="_blank" class="btn btn-primary">View Full Size</a>
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        </div>
+    @endif
 </div>
 @endsection 

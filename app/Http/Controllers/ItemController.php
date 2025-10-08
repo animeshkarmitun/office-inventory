@@ -73,6 +73,38 @@ class ItemController extends Controller
         return view('pages.item.add', compact('categories', 'suppliers', 'users', 'defaultSupplier', 'floors', 'rooms'));
     }
 
+    public function assignFromPurchase($purchaseId, $itemId)
+    {
+        // Get the purchase and purchase item
+        $purchase = \App\Models\Purchase::with(['supplier', 'department', 'purchasedBy', 'receivedBy'])->findOrFail($purchaseId);
+        $purchaseItem = \App\Models\PurchaseItem::findOrFail($itemId);
+        
+        // Get required data for the form
+        $categories = Category::all();
+        $suppliers = Supplier::all();
+        $users = \App\Models\User::all();
+        $floors = \App\Models\Floor::all();
+        $rooms = \App\Models\Room::all();
+        
+        // Pre-populate data from purchase
+        $prefilledData = [
+            'name' => $purchaseItem->item_name,
+            'description' => $purchaseItem->item_type,
+            'specifications' => $purchaseItem->item_type,
+            'value' => $purchaseItem->unit_price,
+            'quantity' => $purchaseItem->quantity,
+            'supplier_id' => $purchase->supplier_id,
+            'purchase_date' => $purchase->purchase_date ? $purchase->purchase_date->format('Y-m-d') : '',
+            'purchased_by' => $purchase->purchased_by,
+            'received_by' => $purchase->received_by,
+            'department_id' => $purchase->department_id,
+            'purchase_id' => $purchase->id,
+            'purchase_item_id' => $purchaseItem->id,
+        ];
+        
+        return view('pages.item.add', compact('categories', 'suppliers', 'users', 'floors', 'rooms', 'prefilledData'));
+    }
+
     public function store(Request $request)
     {
         $request->validate([
@@ -85,14 +117,12 @@ class ItemController extends Controller
             'barcode' => 'nullable|string|max:255',
             'rfid_tag' => 'nullable|string|max:255',
             'description' => 'nullable|string',
-            'specifications' => 'nullable|array|max:6',
-            'specifications.*' => 'required|string|max:255',
+            'specifications' => 'nullable|string|max:1000',
             'asset_type' => 'required|in:fixed,current',
             'value' => 'nullable|numeric|min:0',
-            'invoice_number' => 'nullable|string|max:255',
             'purchased_by' => 'nullable|exists:users,id',
             'supplier_id' => 'required|exists:suppliers,id',
-            'purchase_date' => 'required_with:invoice_number|nullable|date',
+            'purchase_date' => 'nullable|date',
             'received_by' => 'nullable|exists:users,id',
             'status' => 'required|in:available,in_use,maintenance,not_traceable,disposed',
             'remarks' => 'nullable|string',
@@ -101,91 +131,113 @@ class ItemController extends Controller
             'location' => 'nullable|string|max:255',
             'assigned_to' => 'nullable|exists:users,id',
             'condition' => 'nullable|string|max:255',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+            'images' => 'nullable|array|max:10',
+            'images.*' => 'image|mimes:jpeg,png,jpg,gif,webp|max:10240',
+            'purchase_id' => 'nullable|exists:purchases,id',
+            'purchase_item_id' => 'nullable|exists:purchase_items,id',
         ]);
 
-        $fields = $request->except(['individual_count', '_token', 'image', 'invoice_number']);
+        $fields = $request->except(['individual_count', '_token', 'images', 'purchase_item_id']);
         $fields['tracking_mode'] = $request->tracking_mode;
+        
+        // Add purchase_id if provided
+        if ($request->filled('purchase_id')) {
+            $fields['purchase_id'] = $request->purchase_id;
+        }
 
         // Calculate depreciation cost automatically if value and depreciation rate are provided
         if ($request->filled('value') && $request->filled('depreciation_rate')) {
             $fields['depreciation_cost'] = ($request->value * $request->depreciation_rate) / 100;
         }
 
-        // Handle image upload using ImageService
-        $imagePath = null;
-        if ($request->hasFile('image')) {
-            $result = $this->imageService->processAndStore($request->file('image'));
-            
-            if ($result['success']) {
-                $imagePath = $result['processed_path'];
-            } else {
-                return redirect()->back()
-                    ->withInput()
-                    ->withErrors(['image' => 'Image upload failed: ' . $result['error']]);
-            }
-        }
-        $fields['image'] = $imagePath;
-
-        // Create purchase record if invoice number is provided
-        $purchase = null;
-        if ($request->filled('invoice_number') && $request->filled('supplier_id') && $request->filled('purchase_date')) {
-            $purchase = \App\Models\Purchase::create([
-                'supplier_id' => $request->supplier_id,
-                'invoice_number' => $request->invoice_number,
-                'purchase_date' => $request->purchase_date,
-                'total_value' => $request->value ?? 0,
-            ]);
-        }
-
-        if ($request->tracking_mode === 'bulk') {
-            $fields['quantity'] = $request->quantity;
-            $fields['serial_number'] = Item::generateSerialNumber('BULK');
-            $fields['asset_tag'] = Item::generateAssetTag('BULK');
-            if ($purchase) {
-                $fields['purchase_id'] = $purchase->id;
-            }
-            $item = Item::create($fields);
-            
-            // Create purchase item if purchase exists
-            if ($purchase) {
-                \App\Models\PurchaseItem::create([
-                    'purchase_id' => $purchase->id,
-                    'item_name' => $request->name,
-                    'quantity' => $request->quantity,
-                    'unit_price' => $request->value ?? 0,
-                    'item_type' => $request->asset_type,
-                ]);
-            }
-        } else {
-            $count = $request->individual_count ?? 1;
-            for ($i = 0; $i < $count; $i++) {
-                $fields['quantity'] = 1;
-                $fields['serial_number'] = Item::generateSerialNumber(($i+1));
-                $fields['asset_tag'] = Item::generateAssetTag(($i+1));
-                $fields['image'] = $imagePath;
-                if ($purchase) {
-                    $fields['purchase_id'] = $purchase->id;
-                }
-                $item = Item::create($fields);
+        // Handle multiple image uploads
+        $imagePaths = [];
+        if ($request->hasFile('images')) {
+            foreach ($request->file('images') as $index => $image) {
+                $result = $this->imageService->processAndStore($image);
                 
-                // Create purchase item if purchase exists (only for first item to avoid duplicates)
-                if ($purchase && $i === 0) {
-                    \App\Models\PurchaseItem::create([
-                        'purchase_id' => $purchase->id,
-                        'item_name' => $request->name,
-                        'quantity' => $count,
-                        'unit_price' => $request->value ?? 0,
-                        'item_type' => $request->asset_type,
+                if ($result['success']) {
+                    $imagePaths[] = $result['processed_path'];
+                } else {
+                    return redirect()->back()
+                        ->withInput()
+                        ->withErrors(['images.' . $index => 'Image upload failed: ' . $result['error']]);
+                }
+            }
+        }
+
+
+        $itemsCreated = 0;
+        $totalQuantity = 0;
+
+        try {
+            if ($request->tracking_mode === 'bulk') {
+                // Create one item with bulk quantity
+                $fields['quantity'] = $request->quantity;
+                $fields['serial_number'] = Item::generateSerialNumber('BULK');
+                $fields['asset_tag'] = Item::generateAssetTag('BULK');
+                $item = Item::create($fields);
+                $itemsCreated = 1;
+                $totalQuantity = $request->quantity;
+                
+                // Save images for this item
+                foreach ($imagePaths as $sortOrder => $imagePath) {
+                    \App\Models\ItemImage::create([
+                        'item_id' => $item->id,
+                        'image_path' => $imagePath,
+                        'original_name' => $request->file('images')[$sortOrder]->getClientOriginalName(),
+                        'file_type' => $request->file('images')[$sortOrder]->getClientMimeType(),
+                        'file_size' => $request->file('images')[$sortOrder]->getSize(),
+                        'sort_order' => $sortOrder,
                     ]);
                 }
+                
+            } else {
+                // Create individual items
+                $count = $request->individual_count ?? 1;
+                $itemsCreated = $count;
+                $totalQuantity = $count;
+                
+                for ($i = 0; $i < $count; $i++) {
+                    $fields['quantity'] = 1;
+                    $fields['serial_number'] = Item::generateSerialNumber(($i+1));
+                    $fields['asset_tag'] = Item::generateAssetTag(($i+1));
+                    $item = Item::create($fields);
+                    
+                    // Save images for this item
+                    foreach ($imagePaths as $sortOrder => $imagePath) {
+                        \App\Models\ItemImage::create([
+                            'item_id' => $item->id,
+                            'image_path' => $imagePath,
+                            'original_name' => $request->file('images')[$sortOrder]->getClientOriginalName(),
+                            'file_type' => $request->file('images')[$sortOrder]->getClientMimeType(),
+                            'file_size' => $request->file('images')[$sortOrder]->getSize(),
+                            'sort_order' => $sortOrder,
+                        ]);
+                    }
+                    
+                }
             }
+        } catch (\Exception $e) {
+            \Log::error('Item creation failed: ' . $e->getMessage());
+            return redirect()->back()
+                ->withInput()
+                ->withErrors(['error' => 'Failed to create item(s). Please try again.']);
         }
 
-        $message = 'Item(s) added successfully. Waiting for admin approval.';
-        if ($purchase) {
-            $message .= ' Purchase record created with invoice #' . $request->invoice_number;
+        // Generate appropriate success message
+        $purchaseInfo = '';
+        if ($request->filled('purchase_id')) {
+            $purchase = \App\Models\Purchase::find($request->purchase_id);
+            $purchaseInfo = " from purchase {$purchase->purchase_number}";
         }
+        
+        if ($request->tracking_mode === 'bulk') {
+            $message = "Bulk item '{$request->name}' created successfully with quantity {$totalQuantity}{$purchaseInfo}. Waiting for admin approval.";
+        } else {
+            $message = "{$itemsCreated} individual item(s) of '{$request->name}' created successfully{$purchaseInfo}. Waiting for admin approval.";
+        }
+        
         
         return redirect()->route('item')
             ->with(['message' => $message, 'alert' => 'alert-success']);
@@ -207,7 +259,7 @@ class ItemController extends Controller
 
     public function showEdit($id)
     {
-        $item = Item::find($id);
+        $item = Item::with(['images', 'assignedUser', 'supplier', 'floor', 'room'])->find($id);
         $categories = Category::all();
         $suppliers = Supplier::all();
         $users = \App\Models\User::all();
@@ -229,8 +281,7 @@ class ItemController extends Controller
             'barcode' => 'nullable|string|max:255',
             'rfid_tag' => 'nullable|string|max:255',
             'description' => 'nullable|string',
-            'specifications' => 'nullable|array|max:6',
-            'specifications.*' => 'required|string|max:255',
+            'specifications' => 'nullable|string|max:1000',
             'asset_type' => 'required|in:fixed,current',
             'value' => 'nullable|numeric|min:0',
             'purchased_by' => 'nullable|exists:users,id',
@@ -244,19 +295,21 @@ class ItemController extends Controller
             'location' => 'nullable|string|max:255',
             'assigned_to' => 'nullable|exists:users,id',
             'condition' => 'nullable|string|max:255',
-            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048'
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
+            'images' => 'nullable|array|max:10',
+            'images.*' => 'image|mimes:jpeg,png,jpg,gif,webp|max:10240'
         ]);
 
         $item = Item::findOrFail($id);
         
-        $updateData = $request->except(['image']);
+        $updateData = $request->except(['image', 'images']);
         
         // Calculate depreciation cost automatically if value and depreciation rate are provided
         if ($request->filled('value') && $request->filled('depreciation_rate')) {
             $updateData['depreciation_cost'] = ($request->value * $request->depreciation_rate) / 100;
         }
 
-        // Handle image update using ImageService
+        // Handle single image update using ImageService (legacy)
         if ($request->hasFile('image')) {
             $result = $this->imageService->updateImage(
                 $request->file('image'), 
@@ -271,6 +324,57 @@ class ItemController extends Controller
                     ->withErrors(['image' => 'Image update failed: ' . $result['error']]);
             }
         }
+
+        // Handle multiple image uploads
+        if ($request->hasFile('images')) {
+            \Log::info('Multiple images upload detected', [
+                'count' => count($request->file('images')),
+                'item_id' => $item->id
+            ]);
+            
+            foreach ($request->file('images') as $index => $image) {
+                \Log::info('Processing image', [
+                    'index' => $index,
+                    'filename' => $image->getClientOriginalName(),
+                    'size' => $image->getSize(),
+                    'mime' => $image->getMimeType()
+                ]);
+                
+                $result = $this->imageService->processAndStore($image);
+                
+                \Log::info('Image processing result', [
+                    'success' => $result['success'],
+                    'error' => $result['error'] ?? null,
+                    'processed_path' => $result['processed_path'] ?? null
+                ]);
+                
+                if ($result['success']) {
+                    // Create ItemImage record
+                    $itemImage = \App\Models\ItemImage::create([
+                        'item_id' => $item->id,
+                        'image_path' => $result['processed_path'],
+                        'original_name' => $image->getClientOriginalName(),
+                        'file_type' => $image->getMimeType(),
+                        'file_size' => $image->getSize(),
+                        'sort_order' => $item->images()->max('sort_order') + 1,
+                    ]);
+                    
+                    \Log::info('ItemImage created', [
+                        'id' => $itemImage->id,
+                        'image_path' => $itemImage->image_path
+                    ]);
+                } else {
+                    \Log::error('Image upload failed', [
+                        'index' => $index,
+                        'error' => $result['error']
+                    ]);
+                    
+                    return redirect()->back()
+                        ->withInput()
+                        ->withErrors(['images.' . $index => 'Image upload failed: ' . $result['error']]);
+                }
+            }
+        }
         
         $item->update($updateData);
 
@@ -280,6 +384,12 @@ class ItemController extends Controller
 
     public function approve($id)
     {
+        // Check if user has permission to approve items
+        if (!Auth::user()->is_admin && Auth::user()->role !== 'super_admin') {
+            return redirect()->route('item')
+                ->with(['message' => 'You do not have permission to approve items', 'alert' => 'alert-danger']);
+        }
+
         $item = Item::findOrFail($id);
         
         if (!$item->is_approved) {
@@ -356,11 +466,104 @@ class ItemController extends Controller
 
     public function history(Item $item)
     {
-        $item->load(['floor', 'room', 'assignedUser']);
+        $item->load([
+            'images', 
+            'floor', 
+            'room', 
+            'assignedUser', 
+            'category', 
+            'supplier', 
+            'purchasedBy', 
+            'receivedBy', 
+            'approvedBy',
+            'purchase'
+        ]);
         $movements = \App\Models\AssetMovement::where('item_id', $item->id)
-            ->with(['user', 'fromRoom', 'toRoom', 'fromFloor', 'toFloor'])
+            ->with(['fromUser', 'toUser', 'movedBy'])
             ->orderByDesc('created_at')
             ->get();
         return view('pages.item.history', compact('item', 'movements'));
+    }
+
+    public function exportHistoryPdf(Item $item)
+    {
+        $item->load([
+            'images', 
+            'floor', 
+            'room', 
+            'assignedUser', 
+            'category', 
+            'supplier', 
+            'purchasedBy', 
+            'receivedBy', 
+            'approvedBy',
+            'purchase'
+        ]);
+        $movements = \App\Models\AssetMovement::where('item_id', $item->id)
+            ->with(['fromUser', 'toUser', 'movedBy'])
+            ->orderByDesc('created_at')
+            ->get();
+
+        $pdf = \PDF::loadView('pages.item.history-pdf', compact('item', 'movements'));
+        $pdf->setPaper('A4', 'portrait');
+        
+        $filename = 'item_history_' . $item->name . '_' . date('Y-m-d') . '.pdf';
+        return $pdf->download($filename);
+    }
+
+    public function removeImage($id)
+    {
+        try {
+            $itemImage = \App\Models\ItemImage::findOrFail($id);
+            
+            // Delete the image files using ImageService
+            if ($itemImage->image_path) {
+                $this->imageService->deleteImage($itemImage->image_path);
+            }
+            
+            // Delete the database record
+            $itemImage->delete();
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Image removed successfully'
+            ]);
+            
+        } catch (\Exception $e) {
+            \Log::error('Failed to remove image: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to remove image: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function removeLegacyImage($id)
+    {
+        try {
+            $item = Item::findOrFail($id);
+            
+            // Delete the legacy image file using ImageService
+            if ($item->image) {
+                $this->imageService->deleteImage($item->image);
+                
+                // Clear the image field in the database
+                $item->update(['image' => null]);
+            }
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Legacy image removed successfully'
+            ]);
+            
+        } catch (\Exception $e) {
+            \Log::error('Failed to remove legacy image: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to remove legacy image: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }

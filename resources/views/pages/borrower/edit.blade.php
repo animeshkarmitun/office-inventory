@@ -49,7 +49,7 @@
             </div>
 
             <div class="mb-3">
-                <label for="department_id" class="form-label">Department</label>
+                <label for="department_id" class="form-label">Department <span class="text-danger">*</span></label>
                 <select class="form-select" name="department_id" required>
                     @foreach ($departments as $department)
                     <option value="{{ $department->id }}" {{ $department->id == $borrower->department_id ? 'selected' :
@@ -81,9 +81,15 @@
             </div>
 
             <div class="mb-3">
-                <label for="user_id" class="form-label">Authorized By</label>
-                <input type="text" class="form-control" value="{{ $borrower->user ? $borrower->user->name : '' }}" disabled>
-                <input type="hidden" name="user_id" value="{{ $borrower->user_id }}">
+                <label for="user_id" class="form-label">Authorized By <span class="text-danger">*</span></label>
+                <select class="form-select @error('user_id') is-invalid @enderror" name="user_id" id="user_id" required>
+                    <option value="">Select User</option>
+                    @foreach ($users as $user)
+                        <option value="{{ $user->id }}" {{ old('user_id', $borrower->user_id) == $user->id ? 'selected' : '' }}>
+                            {{ $user->name }} ({{ $user->email }})
+                        </option>
+                    @endforeach
+                </select>
 
                 @error('user_id')
                 <span class="invalid-feedback" role="alert">

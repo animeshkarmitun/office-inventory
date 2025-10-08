@@ -11,9 +11,6 @@
             <th scope="col">Assigned User</th>
             <th scope="col">Condition</th>
             <th scope="col">Asset Type</th>
-            <th scope="col">Value</th>
-            <th scope="col">Annual Depreciation</th>
-            <th scope="col">Book Value</th>
             <th scope="col">Status</th>
             <th scope="col">Approval</th>
             <th scope="col">Actions</th>
@@ -26,7 +23,21 @@
             <td><a href="{{ route('item.history', $item->id) }}">{{ $item->name }}</a></td>
             <td>{{ $item->serial_number }}</td>
             <td>{{ $item->asset_tag ?? 'N/A' }}</td>
-            <td>{{ $item->barcode ?? 'N/A' }}</td>
+            <td>
+                @php
+                    $barcodeValue = $item->barcode ?: $item->asset_tag;
+                @endphp
+                @if($barcodeValue)
+                <div class="d-flex align-items-center">
+                    <canvas id="barcode-{{ $item->id }}" style="width: 100px; height: 30px; border: 1px solid #ddd; border-radius: 3px;"></canvas>
+                    <button class="btn btn-sm btn-outline-primary ms-2" onclick="downloadBarcodeFromTable('{{ $barcodeValue }}', '{{ $item->id }}')" title="Download Barcode">
+                        <i class="fas fa-download"></i>
+                    </button>
+                </div>
+                @else
+                    N/A
+                @endif
+            </td>
             <td>{{ $item->rfid_tag ?? 'N/A' }}</td>
             <td>
                 {{ $item->floor_level }} - {{ $item->room_number }}
@@ -37,17 +48,8 @@
             <td>{{ $item->assignedUser->name ?? 'N/A' }}</td>
             <td>{{ $item->condition ?? 'N/A' }}</td>
             <td>{{ ucfirst($item->asset_type) }}</td>
-            <td>{{ $item->value ? number_format($item->value, 2) : 'N/A' }}</td>
-            <td>{{ $item->annualDepreciation() !== null ? number_format($item->annualDepreciation(), 2) : 'N/A' }}</td>
-            <td>{{ $item->currentBookValue() !== null ? number_format($item->currentBookValue(), 2) : 'N/A' }}</td>
             <td>
-                @if($item->status === 'pending')
-                    <span class="badge bg-warning" data-bs-toggle="tooltip" title="Pending approval">Pending</span>
-                @elseif($item->status === 'approved')
-                    <span class="badge bg-success" data-bs-toggle="tooltip" title="Approved by: {{ $item->approvedBy ? $item->approvedBy->name : 'N/A' }}&#10;{{ $item->approved_at ? $item->approved_at->format('Y-m-d H:i') : '' }}">Approved</span>
-                @else
-                    <span class="badge bg-secondary">{{ ucfirst($item->status) }}</span>
-                @endif
+                <span class="badge bg-secondary">{{ ucfirst($item->status) }}</span>
             </td>
             <td class="text-center">
                 @if($item->is_approved)
@@ -81,8 +83,8 @@
                                 <i class="bi bi-clock-history"></i> Movement History
                             </a>
                         </li>
-                        @if(Auth::user()->is_admin)
-                            @if(!$item->is_approved)
+                        @if(!$item->is_approved)
+                            @if(Auth::user()->is_admin || Auth::user()->role === 'super_admin')
                                 <li>
                                     <form action="{{ route('item.approve', ['id' => $item->id]) }}" method="POST" class="d-inline">
                                         @csrf
@@ -93,12 +95,9 @@
                                 </li>
                             @else
                                 <li>
-                                    <form action="#" method="POST" class="d-inline">
-                                        @csrf
-                                        <button type="submit" class="dropdown-item text-warning">
-                                            <i class="bi bi-x-circle"></i> Reject
-                                        </button>
-                                    </form>
+                                    <span class="dropdown-item text-muted">
+                                        <i class="bi bi-hourglass-split"></i> Pending Approval
+                                    </span>
                                 </li>
                             @endif
                         @endif
@@ -110,7 +109,12 @@
     </tbody>
 </table>
 @if (method_exists($items, 'links'))
-    <div class="d-flex justify-content-center">
-        {!! $items->links() !!}
+    <div class="pagination-wrapper">
+        <div class="pagination-info">
+            Showing {{ $items->firstItem() ?? 0 }} to {{ $items->lastItem() ?? 0 }} of {{ $items->total() }} results
+        </div>
+        <div class="d-flex justify-content-center">
+            {!! $items->links() !!}
+        </div>
     </div>
 @endif 

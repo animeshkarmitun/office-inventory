@@ -17,7 +17,7 @@ class RoomController extends Controller
 
     public function index()
     {
-        $rooms = Room::with('floor')->orderBy('floor_id')->orderBy('room_number')->get();
+        $rooms = Room::with('floor')->orderBy('floor_id')->orderBy('name')->get();
         return view('pages.room.index', compact('rooms'));
     }
 
@@ -32,19 +32,9 @@ class RoomController extends Controller
         $request->validate([
             'floor_id' => 'required|exists:floors,id',
             'name' => 'required|string|max:255',
-            'room_number' => 'required|string|max:255',
             'description' => 'nullable|string',
             'status' => 'required|in:active,inactive,maintenance',
         ]);
-
-        // Check if room number already exists in the same floor
-        $existingRoom = Room::where('floor_id', $request->floor_id)
-            ->where('room_number', $request->room_number)
-            ->first();
-
-        if ($existingRoom) {
-            return back()->withErrors(['room_number' => 'Room number already exists in this floor.'])->withInput();
-        }
 
         Room::create($request->all());
 
@@ -58,23 +48,9 @@ class RoomController extends Controller
             $request->validate([
                 'floor_id' => 'required|exists:floors,id',
                 'name' => 'required|string|max:255',
-                'room_number' => 'required|string|max:255',
                 'description' => 'nullable|string',
                 'status' => 'required|in:active,inactive,maintenance',
             ]);
-
-            // Check if room number already exists in the same floor
-            $existingRoom = Room::where('floor_id', $request->floor_id)
-                ->where('room_number', $request->room_number)
-                ->first();
-
-            if ($existingRoom) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Room number already exists in this floor.',
-                    'errors' => ['room_number' => ['Room number already exists in this floor.']]
-                ], 422);
-            }
 
             $room = Room::create($request->all());
             $room->load('floor');
@@ -85,7 +61,6 @@ class RoomController extends Controller
                 'room' => [
                     'id' => $room->id,
                     'name' => $room->name,
-                    'room_number' => $room->room_number,
                     'description' => $room->description,
                     'status' => $room->status,
                     'floor_name' => $room->floor->name
@@ -122,20 +97,9 @@ class RoomController extends Controller
         $request->validate([
             'floor_id' => 'required|exists:floors,id',
             'name' => 'required|string|max:255',
-            'room_number' => 'required|string|max:255',
             'description' => 'nullable|string',
             'status' => 'required|in:active,inactive,maintenance',
         ]);
-
-        // Check if room number already exists in the same floor (excluding current room)
-        $existingRoom = Room::where('floor_id', $request->floor_id)
-            ->where('room_number', $request->room_number)
-            ->where('id', '!=', $room->id)
-            ->first();
-
-        if ($existingRoom) {
-            return back()->withErrors(['room_number' => 'Room number already exists in this floor.'])->withInput();
-        }
 
         $room->update($request->all());
 
@@ -154,7 +118,7 @@ class RoomController extends Controller
     // Get rooms by floor (for AJAX requests)
     public function getByFloor($floorId)
     {
-        $rooms = Room::where('floor_id', $floorId)->orderBy('room_number')->get();
+        $rooms = Room::where('floor_id', $floorId)->orderBy('name')->get();
         return response()->json($rooms);
     }
 }

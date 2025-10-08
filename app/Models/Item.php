@@ -51,7 +51,7 @@ class Item extends Model
     ];
 
     protected $casts = [
-        'specifications' => 'array',
+        'specifications' => 'string',
         'purchase_date' => 'date',
         'approved_at' => 'datetime',
         'value' => 'decimal:2',
@@ -99,34 +99,52 @@ class Item extends Model
                 $fromLocation = self::getFormattedLocationForMovement($originalLocation, $originalFloorId, $originalRoomId, $originalFloorLevel, $originalRoomNumber);
                 $toLocation = self::getFormattedLocationForMovement($newLocation, $newFloorId, $newRoomId, $newFloorLevel, $newRoomNumber);
 
-                \App\Models\AssetMovement::create([
-                    'item_id' => $item->id,
-                    'from_user_id' => $originalAssignedTo,
-                    'to_user_id' => $newAssignedTo,
-                    'from_location' => $fromLocation,
-                    'to_location' => $toLocation,
-                    'movement_type' => $movementType,
-                    'notes' => $movementType === 'location_change' ? 'Location updated via item edit' : 'Assignment updated via item edit',
-                    'moved_by' => Auth::id() ?? \App\Models\User::first()->id ?? 1 // Fallback to first user if no auth
-                ]);
+                try {
+                    // Only create movement if we have a valid user ID and the table exists
+                    $movedBy = Auth::check() ? Auth::id() : (\App\Models\User::first()->id ?? null);
+                    if ($movedBy && \Schema::hasTable('asset_movements')) {
+                        \App\Models\AssetMovement::create([
+                            'item_id' => $item->id,
+                            'from_user_id' => $originalAssignedTo,
+                            'to_user_id' => $newAssignedTo,
+                            'from_location' => $fromLocation,
+                            'to_location' => $toLocation,
+                            'movement_type' => $movementType,
+                            'notes' => $movementType === 'location_change' ? 'Location updated via item edit' : 'Assignment updated via item edit',
+                            'moved_by' => $movedBy
+                        ]);
+                    }
+                } catch (\Exception $e) {
+                    // Log the error but don't break the item creation
+                    \Log::error('Failed to create asset movement: ' . $e->getMessage());
+                }
             }
         });
 
         // Create initial movement record when item is created with assignment
         static::created(function ($item) {
             if ($item->assigned_to) {
-                $toLocation = self::getFormattedLocationForMovement($item->location, $item->floor_id, $item->room_id, $item->floor_level, $item->room_number);
-                
-                \App\Models\AssetMovement::create([
-                    'item_id' => $item->id,
-                    'from_user_id' => null,
-                    'to_user_id' => $item->assigned_to,
-                    'from_location' => null,
-                    'to_location' => $toLocation,
-                    'movement_type' => 'assignment',
-                    'notes' => 'Initial assignment',
-                    'moved_by' => Auth::id() ?? \App\Models\User::first()->id ?? 1 // Fallback to first user if no auth
-                ]);
+                try {
+                    // Only create movement if we have a valid user ID and the table exists
+                    $movedBy = Auth::check() ? Auth::id() : (\App\Models\User::first()->id ?? null);
+                    if ($movedBy && \Schema::hasTable('asset_movements')) {
+                        $toLocation = self::getFormattedLocationForMovement($item->location, $item->floor_id, $item->room_id, $item->floor_level, $item->room_number);
+                        
+                        \App\Models\AssetMovement::create([
+                            'item_id' => $item->id,
+                            'from_user_id' => null,
+                            'to_user_id' => $item->assigned_to,
+                            'from_location' => null,
+                            'to_location' => $toLocation,
+                            'movement_type' => 'assignment',
+                            'notes' => 'Initial assignment',
+                            'moved_by' => $movedBy
+                        ]);
+                    }
+                } catch (\Exception $e) {
+                    // Log the error but don't break the item creation
+                    \Log::error('Failed to create initial asset movement: ' . $e->getMessage());
+                }
             }
         });
     }
@@ -179,6 +197,16 @@ class Item extends Model
     public function room()
     {
         return $this->belongsTo(Room::class);
+    }
+
+    public function images()
+    {
+        return $this->hasMany(ItemImage::class)->orderBy('sort_order');
+    }
+
+    public function primaryImage()
+    {
+        return $this->hasOne(ItemImage::class)->orderBy('sort_order');
     }
 
     public function purchase()

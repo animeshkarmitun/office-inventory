@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Borrower;
 use App\Models\Department;
 use App\Models\Item;
+use App\Models\User;
 use Illuminate\Http\Request;
 
 class BorrowerController extends Controller
@@ -18,8 +19,9 @@ class BorrowerController extends Controller
     public function showAdd()
     {
         $departments = Department::all();
-        $items = Item::where('status', 1)->get();
-        return view('pages.borrower.add', compact('departments', 'items'));
+        $items = Item::where('status', 'available')->get();
+        $users = User::orderBy('name')->get();
+        return view('pages.borrower.add', compact('departments', 'items', 'users'));
     }
 
     public function store(Request $request)
@@ -29,7 +31,7 @@ class BorrowerController extends Controller
             'staff_id' => 'required',
             'item_id' => 'nullable|exists:items,id',
             'department_id' => 'required',
-            'user_id' => 'required',
+            'user_id' => 'required|exists:users,id',
         ]);
 
         if ($request->item_id) {
@@ -59,9 +61,10 @@ class BorrowerController extends Controller
     {
         $borrower = Borrower::find($id);
         $departments = Department::all();
-        $items = Item::where('status', 1)->get();
+        $items = Item::where('status', 'available')->get();
+        $users = User::orderBy('name')->get();
 
-        return view('pages.borrower.edit', compact('borrower', 'departments', 'items'));
+        return view('pages.borrower.edit', compact('borrower', 'departments', 'items', 'users'));
     }
 
     public function update($id, Request $request)

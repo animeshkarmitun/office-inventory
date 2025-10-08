@@ -40,6 +40,12 @@
         <div class="card-body p-4">
         <form action="{{ route('item.store') }}" method="POST" enctype="multipart/form-data">
             @csrf
+            @if(isset($prefilledData['purchase_id']))
+                <input type="hidden" name="purchase_id" value="{{ $prefilledData['purchase_id'] }}">
+            @endif
+            @if(isset($prefilledData['purchase_item_id']))
+                <input type="hidden" name="purchase_item_id" value="{{ $prefilledData['purchase_item_id'] }}">
+            @endif
             <div class="row g-4">
                 <div class="col-lg-6">
                     <div class="card border-0 bg-light">
@@ -52,7 +58,7 @@
                         <div class="card-body pt-3">
                     <div class="mb-3">
                         <label for="name" class="form-label">Item Name <span class="text-danger">*</span></label>
-                        <input type="text" name="name" class="form-control @error('name') is-invalid @enderror" id="name" required value="{{ old('name') }}">
+                        <input type="text" name="name" class="form-control @error('name') is-invalid @enderror" id="name" required value="{{ old('name', $prefilledData['name'] ?? '') }}">
                         @error('name')
                             <div class="invalid-feedback">Item Name is required. Please enter a value.</div>
                         @enderror
@@ -75,10 +81,25 @@
                     </div>
                     <div class="mb-3">
                         <label for="barcode" class="form-label">Barcode</label>
-                        <input type="text" name="barcode" class="form-control @error('barcode') is-invalid @enderror" id="barcode" value="{{ old('barcode') }}">
+                        <div class="input-group">
+                            <input type="text" name="barcode" class="form-control @error('barcode') is-invalid @enderror" id="barcode" value="{{ old('barcode') }}" readonly placeholder="Will be auto-generated from asset tag">
+                            <button type="button" class="btn btn-outline-secondary" id="generateBarcodeBtn" title="Generate Barcode">
+                                <i class="fas fa-barcode"></i>
+                            </button>
+                            <button type="button" class="btn btn-outline-primary" id="downloadBarcodeBtn" title="Download Barcode" style="display: none;">
+                                <i class="fas fa-download"></i>
+                            </button>
+                        </div>
+                        <small class="form-text text-muted">Barcode will be automatically generated from the asset tag when created.</small>
                         @error('barcode')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
+                    </div>
+                    <div class="mb-3" id="barcodePreview" style="display: none;">
+                        <label class="form-label">Barcode Preview</label>
+                        <div class="text-center">
+                            <canvas id="barcodeCanvas" style="max-width: 100%; height: auto;"></canvas>
+                        </div>
                     </div>
                     <div class="mb-3">
                         <label for="rfid_tag" class="form-label">RFID Tag</label>
@@ -89,7 +110,7 @@
                     </div>
                     <div class="mb-3">
                         <label for="description" class="form-label fw-semibold">Description</label>
-                        <textarea name="description" class="form-control @error('description') is-invalid @enderror" id="description" rows="3" placeholder="Enter item description...">{{ old('description') }}</textarea>
+                        <textarea name="description" class="form-control @error('description') is-invalid @enderror" id="description" rows="3" placeholder="Enter item description...">{{ old('description', $prefilledData['description'] ?? '') }}</textarea>
                         @error('description')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -119,7 +140,7 @@
                     </div>
                     <div class="mb-3">
                         <label for="value" class="form-label">Value</label>
-                        <input type="number" step="0.01" name="value" class="form-control @error('value') is-invalid @enderror" id="value" value="{{ old('value') }}">
+                        <input type="number" step="0.01" name="value" class="form-control @error('value') is-invalid @enderror" id="value" value="{{ old('value', $prefilledData['value'] ?? '') }}">
                         @error('value')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -172,21 +193,18 @@
                         </div>
                         <div class="card-body pt-3">
                     <div class="mb-3">
-                        <label for="invoice_number" class="form-label">Invoice Number</label>
-                        <input type="text" name="invoice_number" class="form-control @error('invoice_number') is-invalid @enderror" id="invoice_number" value="{{ old('invoice_number') }}" placeholder="Enter invoice number if this is a new purchase">
-                        <small class="form-text text-muted">Leave blank if this item was purchased previously</small>
-                        @error('invoice_number')
-                            <div class="invalid-feedback">{{ $message }}</div>
-                        @enderror
-                    </div>
-                    <div class="mb-3">
                         <label for="purchased_by" class="form-label">Purchased By</label>
-                        <select name="purchased_by" class="form-select @error('purchased_by') is-invalid @enderror" id="purchased_by">
-                            <option value="">-- Select User --</option>
-                            @foreach($users as $user)
-                                <option value="{{ $user->id }}" {{ old('purchased_by') == $user->id ? 'selected' : '' }}>{{ $user->name ?? 'No Name' }}</option>
-                            @endforeach
-                        </select>
+                        <div class="input-group">
+                            <select name="purchased_by" class="form-select @error('purchased_by') is-invalid @enderror" id="purchased_by">
+                                <option value="">-- Select User --</option>
+                                @foreach($users as $user)
+                                    <option value="{{ $user->id }}" {{ old('purchased_by', $prefilledData['purchased_by'] ?? '') == $user->id ? 'selected' : '' }}>{{ $user->name ?? 'No Name' }}</option>
+                                @endforeach
+                            </select>
+                            <button type="button" class="btn btn-outline-primary" id="addUserPurchasedBtn" data-bs-toggle="modal" data-bs-target="#addUserModal">
+                                <i class="fas fa-plus"></i> Add New
+                            </button>
+                        </div>
                         @error('purchased_by')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -197,7 +215,7 @@
                         <select name="supplier_id" class="form-select @error('supplier_id') is-invalid @enderror" id="supplier_id" required>
                             <option value="">-- Select Supplier --</option>
                             @foreach($suppliers as $supplier)
-                                <option value="{{ $supplier->id }}" {{ old('supplier_id', $defaultSupplier->id ?? '') == $supplier->id ? 'selected' : '' }}>{{ $supplier->name ?? 'No Name' }}</option>
+                                <option value="{{ $supplier->id }}" {{ old('supplier_id', $prefilledData['supplier_id'] ?? $defaultSupplier->id ?? '') == $supplier->id ? 'selected' : '' }}>{{ $supplier->name ?? 'No Name' }}</option>
                             @endforeach
                         </select>
                             <button type="button" class="btn btn-outline-primary" id="addSupplierBtn" data-bs-toggle="modal" data-bs-target="#addSupplierModal">
@@ -211,19 +229,24 @@
                     </div>
                     <div class="mb-3">
                         <label for="purchase_date" class="form-label">Purchase Date</label>
-                        <input type="date" name="purchase_date" class="form-control @error('purchase_date') is-invalid @enderror" id="purchase_date" value="{{ old('purchase_date') }}">
+                        <input type="date" name="purchase_date" class="form-control @error('purchase_date') is-invalid @enderror" id="purchase_date" value="{{ old('purchase_date', $prefilledData['purchase_date'] ?? '') }}">
                         @error('purchase_date')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
                     </div>
                     <div class="mb-3">
                         <label for="received_by" class="form-label">Received By</label>
-                        <select name="received_by" class="form-select @error('received_by') is-invalid @enderror" id="received_by">
-                            <option value="">-- Select User --</option>
-                            @foreach($users as $user)
-                                <option value="{{ $user->id }}" {{ old('received_by') == $user->id ? 'selected' : '' }}>{{ $user->name ?? 'No Name' }}</option>
-                            @endforeach
-                        </select>
+                        <div class="input-group">
+                            <select name="received_by" class="form-select @error('received_by') is-invalid @enderror" id="received_by">
+                                <option value="">-- Select User --</option>
+                                @foreach($users as $user)
+                                    <option value="{{ $user->id }}" {{ old('received_by', $prefilledData['received_by'] ?? '') == $user->id ? 'selected' : '' }}>{{ $user->name ?? 'No Name' }}</option>
+                                @endforeach
+                            </select>
+                            <button type="button" class="btn btn-outline-primary" id="addUserReceivedBtn" data-bs-toggle="modal" data-bs-target="#addUserModal">
+                                <i class="fas fa-plus"></i> Add New
+                            </button>
+                        </div>
                         @error('received_by')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -292,12 +315,17 @@
                     </div>
                     <div class="mb-3">
                         <label for="assigned_to" class="form-label">Assigned To</label>
-                        <select name="assigned_to" class="form-select @error('assigned_to') is-invalid @enderror" id="assigned_to">
-                            <option value="">-- Select User --</option>
-                            @foreach($users as $user)
-                                <option value="{{ $user->id }}" {{ old('assigned_to') == $user->id ? 'selected' : '' }}>{{ $user->name ?? 'No Name' }}</option>
-                            @endforeach
-                        </select>
+                        <div class="input-group">
+                            <select name="assigned_to" class="form-select @error('assigned_to') is-invalid @enderror" id="assigned_to">
+                                <option value="">-- Select User --</option>
+                                @foreach($users as $user)
+                                    <option value="{{ $user->id }}" {{ old('assigned_to') == $user->id ? 'selected' : '' }}>{{ $user->name ?? 'No Name' }}</option>
+                                @endforeach
+                            </select>
+                            <button type="button" class="btn btn-outline-primary" id="addUserAssignedBtn" data-bs-toggle="modal" data-bs-target="#addUserModal">
+                                <i class="fas fa-plus"></i> Add New
+                            </button>
+                        </div>
                         @error('assigned_to')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -319,7 +347,7 @@
                         <div class="card-body pt-3">
                     <div class="mb-3">
                         <label for="specifications" class="form-label">Specifications</label>
-                        <textarea name="specifications" class="form-control @error('specifications') is-invalid @enderror" id="specifications" rows="3">{{ old('specifications') }}</textarea>
+                        <textarea name="specifications" class="form-control @error('specifications') is-invalid @enderror" id="specifications" rows="3">{{ old('specifications', $prefilledData['specifications'] ?? '') }}</textarea>
                         @error('specifications')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
@@ -350,29 +378,53 @@
                         </div>
                         <div class="card-body pt-3">
             <div class="mb-3">
-                                <label for="tracking_mode" class="form-label fw-semibold">Tracking Mode <span class="text-danger">*</span></label>
-                <select name="tracking_mode" id="tracking_mode" class="form-select @error('tracking_mode') is-invalid @enderror" required>
-                    <option value="individual" {{ old('tracking_mode') == 'individual' ? 'selected' : '' }}>Individual</option>
-                    <option value="bulk" {{ old('tracking_mode') == 'bulk' ? 'selected' : '' }}>Bulk</option>
-                </select>
+                <label for="tracking_mode" class="form-label fw-semibold">Item Creation Mode <span class="text-danger">*</span></label>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="tracking_mode" id="individual_mode" value="individual" {{ old('tracking_mode', 'individual') == 'individual' ? 'checked' : '' }}>
+                            <label class="form-check-label fw-semibold" for="individual_mode">
+                                <i class="fas fa-cube me-2 text-primary"></i>Individual Items
+                            </label>
+                            <small class="form-text text-muted d-block">Create separate items with unique serial numbers</small>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="tracking_mode" id="bulk_mode" value="bulk" {{ old('tracking_mode') == 'bulk' ? 'checked' : '' }}>
+                            <label class="form-check-label fw-semibold" for="bulk_mode">
+                                <i class="fas fa-boxes me-2 text-success"></i>Bulk Items
+                            </label>
+                            <small class="form-text text-muted d-block">Create one item with specified quantity</small>
+                        </div>
+                    </div>
+                </div>
                 @error('tracking_mode')
                     <div class="invalid-feedback">{{ $message }}</div>
                 @enderror
             </div>
-            <div class="mb-3">
-                                <label for="quantity" class="form-label fw-semibold">Quantity <span class="text-danger">*</span></label>
-                <input type="number" name="quantity" id="quantity" class="form-control @error('quantity') is-invalid @enderror" min="1" value="{{ old('quantity', 1) }}">
+            
+            <div class="mb-3" id="individual-count-group">
+                <label for="individual_count" class="form-label fw-semibold">
+                    <i class="fas fa-plus-circle me-2 text-primary"></i>How many individual items to create? <span class="text-danger">*</span>
+                </label>
+                <input type="number" name="individual_count" id="individual_count" class="form-control @error('individual_count') is-invalid @enderror" min="1" value="{{ old('individual_count', $prefilledData['quantity'] ?? 1) }}">
+                <small class="form-text text-muted">Each item will have a unique serial number and asset tag</small>
+                @error('individual_count')
+                    <div class="invalid-feedback">{{ $message }}</div>
+                @enderror
+            </div>
+            
+            <div class="mb-3" id="bulk-quantity-group" style="display: none;">
+                <label for="quantity" class="form-label fw-semibold">
+                    <i class="fas fa-hashtag me-2 text-success"></i>Total Quantity <span class="text-danger">*</span>
+                </label>
+                <input type="number" name="quantity" id="quantity" class="form-control @error('quantity') is-invalid @enderror" min="1" value="{{ old('quantity', $prefilledData['quantity'] ?? 1) }}">
+                <small class="form-text text-muted">This will create one item record with the specified quantity</small>
                 @error('quantity')
                     <div class="invalid-feedback">{{ $message }}</div>
                 @enderror
             </div>
-            <div class="mb-3" id="individual-count-group" style="display: none;">
-                                <label for="individual_count" class="form-label fw-semibold">How many items to create? <span class="text-danger">*</span></label>
-                <input type="number" name="individual_count" id="individual_count" class="form-control @error('individual_count') is-invalid @enderror" min="1" value="{{ old('individual_count', 1) }}">
-                @error('individual_count')
-                    <div class="invalid-feedback">{{ $message }}</div>
-                @enderror
-                            </div>
                         </div>
                     </div>
             </div>
@@ -387,13 +439,22 @@
                         </div>
                         <div class="card-body pt-3">
             <div class="mb-3">
-                                <label for="image" class="form-label fw-semibold">Upload Image</label>
-                <input type="file" name="image" id="image" class="form-control @error('image') is-invalid @enderror" accept="image/*">
-                                <small class="form-text text-muted">Supported formats: JPG, PNG, GIF (Max 5MB)</small>
-                @error('image')
+                <label for="images" class="form-label fw-semibold">Upload Images</label>
+                <input type="file" name="images[]" id="images" class="form-control @error('images') is-invalid @enderror" accept="image/*" multiple>
+                <small class="form-text text-muted">Supported formats: JPG, PNG, GIF, WEBP (Max 10MB per image, Multiple images allowed)</small>
+                @error('images')
                     <div class="invalid-feedback">{{ $message }}</div>
                 @enderror
-                            </div>
+                @error('images.*')
+                    <div class="invalid-feedback">{{ $message }}</div>
+                @enderror
+                
+                <!-- Image Preview Container -->
+                <div id="imagePreview" class="mt-3" style="display: none;">
+                    <h6 class="text-muted mb-2">Selected Images:</h6>
+                    <div id="imagePreviewContainer" class="row"></div>
+                </div>
+            </div>
                         </div>
                     </div>
                 </div>
@@ -443,8 +504,8 @@
                         </div>
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label for="modal_supplier_incharge_name" class="form-label">Person in Charge <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="modal_supplier_incharge_name" name="incharge_name" required>
+                                <label for="modal_supplier_incharge_name" class="form-label">Person in Charge</label>
+                                <input type="text" class="form-control" id="modal_supplier_incharge_name" name="incharge_name">
                                 <div class="invalid-feedback"></div>
                             </div>
                         </div>
@@ -586,12 +647,6 @@
                     </div>
                     
                     <div class="mb-3">
-                        <label for="modal_room_number" class="form-label">Room Number <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="modal_room_number" name="room_number" required>
-                        <div class="invalid-feedback"></div>
-                    </div>
-                    
-                    <div class="mb-3">
                         <label for="modal_room_status" class="form-label">Status <span class="text-danger">*</span></label>
                         <select class="form-select" id="modal_room_status" name="status" required>
                             <option value="active">Active</option>
@@ -612,6 +667,123 @@
                     <button type="button" class="btn btn-primary" id="saveRoomBtn">
                         <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
                         <span class="btn-text">Add Room</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Add User Modal -->
+<div class="modal fade" id="addUserModal" tabindex="-1" aria-labelledby="addUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-primary text-white border-0">
+                <h5 class="modal-title fw-bold text-white" id="addUserModalLabel">
+                    <i class="fas fa-user-plus me-2"></i>
+                    Add New User
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="addUserForm" onsubmit="return false;">
+                <div class="modal-body">
+                    <div id="userModalAlert" class="alert" style="display: none;"></div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="modal_user_name" class="form-label">Full Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="modal_user_name" name="name" required>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="modal_user_email" class="form-label">Email Address</label>
+                                <input type="email" class="form-control" id="modal_user_email" name="email" placeholder="Leave empty to auto-generate">
+                                <small class="form-text text-muted">If left empty, email will be auto-generated from name</small>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="modal_user_designation_id" class="form-label">Designation <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <select class="form-select" id="modal_user_designation_id" name="designation_id" required>
+                                <option value="">-- Select Designation --</option>
+                                @foreach(\App\Models\Designation::with('department')->get() as $designation)
+                                    <option value="{{ $designation->id }}">{{ $designation->name }} ({{ $designation->department->name }})</option>
+                                @endforeach
+                            </select>
+                            <button type="button" class="btn btn-outline-primary" id="createDesignationBtn" data-bs-toggle="modal" data-bs-target="#createDesignationModal">
+                                <i class="fas fa-plus"></i> Create New
+                            </button>
+                        </div>
+                        <div class="invalid-feedback"></div>
+                    </div>
+                    
+                    <!-- Hidden fields for auto-generated values -->
+                    <input type="hidden" id="modal_user_password" name="password" value="">
+                    <input type="hidden" id="modal_user_role" name="role" value="employee">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="saveUserBtn">
+                        <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                        <span class="btn-text">Add User</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Create Designation Modal -->
+<div class="modal fade" id="createDesignationModal" tabindex="-1" aria-labelledby="createDesignationModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-success text-white border-0">
+                <h5 class="modal-title fw-bold text-white" id="createDesignationModalLabel">
+                    <i class="fas fa-plus me-2"></i>
+                    Create New Designation
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="createDesignationForm" onsubmit="return false;">
+                <div class="modal-body">
+                    <div id="designationModalAlert" class="alert" style="display: none;"></div>
+                    
+                    <div class="mb-3">
+                        <label for="new_designation_name" class="form-label">Designation Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="new_designation_name" name="name" required>
+                        <div class="invalid-feedback"></div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="new_designation_department_id" class="form-label">Department <span class="text-danger">*</span></label>
+                        <div class="position-relative">
+                            <input type="text" class="form-control" id="new_designation_department_input" placeholder="Type department name or select from list" autocomplete="off">
+                            <input type="hidden" id="new_designation_department_id" name="department_id">
+                            <div class="dropdown-menu w-100" id="departmentDropdown" style="display: none; position: absolute; z-index: 1000;">
+                                @foreach(\App\Models\Department::all() as $department)
+                                    <a class="dropdown-item" href="#" data-id="{{ $department->id }}" data-name="{{ $department->name }}">{{ $department->name }}</a>
+                                @endforeach
+                                <div class="dropdown-divider"></div>
+                                <a class="dropdown-item text-primary" href="#" id="createNewDepartment">
+                                    <i class="fas fa-plus me-1"></i>Create new department
+                                </a>
+                            </div>
+                        </div>
+                        <small class="form-text text-muted">Type to search existing departments or create a new one</small>
+                        <div class="invalid-feedback"></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-success" id="saveDesignationBtn">
+                        <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                        <span class="btn-text">Create Designation</span>
                     </button>
                 </div>
             </form>
@@ -709,28 +881,100 @@
         width: 1rem;
         height: 1rem;
     }
+    
+    /* Radio button styling */
+    .form-check-input:checked {
+        background-color: #0d6efd;
+        border-color: #0d6efd;
+    }
+    
+    .form-check-input:focus {
+        border-color: #86b7fe;
+        outline: 0;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    }
+    
+    .form-check {
+        padding: 1rem;
+        border: 2px solid #e9ecef;
+        border-radius: 12px;
+        transition: all 0.3s ease;
+        background: #fff;
+    }
+    
+    .form-check:hover {
+        border-color: #0d6efd;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(13, 110, 253, 0.15);
+    }
+    
+    .form-check-input:checked + .form-check-label {
+        color: #0d6efd;
+    }
+    
+    .form-check-input:checked ~ .form-check {
+        border-color: #0d6efd;
+        background: linear-gradient(135deg, #f8f9ff 0%, #e3f2fd 100%);
+    }
+    
+    /* Quantity group styling */
+    #individual-count-group, #bulk-quantity-group {
+        background: #f8f9fa;
+        padding: 1.5rem;
+        border-radius: 12px;
+        border: 2px solid #e9ecef;
+        transition: all 0.3s ease;
+    }
+    
+    #individual-count-group {
+        border-color: #0d6efd;
+        background: linear-gradient(135deg, #f8f9ff 0%, #e3f2fd 100%);
+    }
+    
+    #bulk-quantity-group {
+        border-color: #198754;
+        background: linear-gradient(135deg, #f0fff4 0%, #e8f5e8 100%);
+    }
+    
+    /* Icon styling */
+    .form-label i {
+        font-size: 1.1rem;
+    }
 </style>
 @endpush
 
 @push('scripts')
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        const trackingMode = document.getElementById('tracking_mode');
+        const individualMode = document.getElementById('individual_mode');
+        const bulkMode = document.getElementById('bulk_mode');
         const quantityField = document.getElementById('quantity');
+        const individualCountField = document.getElementById('individual_count');
         const individualCountGroup = document.getElementById('individual-count-group');
+        const bulkQuantityGroup = document.getElementById('bulk-quantity-group');
         
         function toggleTrackingFields() {
-            if (trackingMode.value === 'bulk') {
+            if (bulkMode.checked) {
+                // Show bulk quantity field, hide individual count
+                individualCountGroup.style.display = 'none';
+                bulkQuantityGroup.style.display = 'block';
                 quantityField.disabled = false;
                 quantityField.required = true;
-                individualCountGroup.style.display = 'none';
+                individualCountField.disabled = true;
+                individualCountField.required = false;
             } else {
+                // Show individual count field, hide bulk quantity
+                individualCountGroup.style.display = 'block';
+                bulkQuantityGroup.style.display = 'none';
+                individualCountField.disabled = false;
+                individualCountField.required = true;
                 quantityField.disabled = true;
                 quantityField.required = false;
-                individualCountGroup.style.display = '';
             }
         }
-        trackingMode.addEventListener('change', toggleTrackingFields);
+        
+        individualMode.addEventListener('change', toggleTrackingFields);
+        bulkMode.addEventListener('change', toggleTrackingFields);
         toggleTrackingFields();
 
         // Auto-calculate depreciation cost
@@ -755,25 +999,6 @@
         
         valueField.addEventListener('input', calculateDepreciationCost);
         depreciationRateField.addEventListener('input', calculateDepreciationCost);
-
-        // Make purchase date conditional based on invoice number
-        const invoiceNumberField = document.getElementById('invoice_number');
-        const purchaseDateField = document.getElementById('purchase_date');
-        
-        function togglePurchaseFields() {
-            const hasInvoice = invoiceNumberField.value.trim() !== '';
-            
-            if (hasInvoice) {
-                purchaseDateField.required = true;
-                purchaseDateField.parentElement.querySelector('.form-label').innerHTML = 'Purchase Date <span class="text-danger">*</span>';
-            } else {
-                purchaseDateField.required = false;
-                purchaseDateField.parentElement.querySelector('.form-label').innerHTML = 'Purchase Date';
-            }
-        }
-        
-        invoiceNumberField.addEventListener('input', togglePurchaseFields);
-        togglePurchaseFields();
 
         // Room filtering functionality
         const floorSelect = document.getElementById('floor_level');
@@ -1202,6 +1427,559 @@
             e.stopPropagation();
             handleRoomSubmit();
         });
+
+        // User Modal functionality
+        const addUserForm = document.getElementById('addUserForm');
+        const userModal = document.getElementById('addUserModal');
+        const saveUserBtn = document.getElementById('saveUserBtn');
+        const userModalAlert = document.getElementById('userModalAlert');
+        
+        // Get all user select elements
+        const purchasedBySelect = document.getElementById('purchased_by');
+        const receivedBySelect = document.getElementById('received_by');
+        const assignedToSelect = document.getElementById('assigned_to');
+        
+        // Track which dropdown triggered the modal
+        let currentTriggeredSelect = null;
+
+        // Track which dropdown triggered the modal
+        document.addEventListener('click', function(e) {
+            if (e.target.closest('[data-bs-target="#addUserModal"]')) {
+                const button = e.target.closest('[data-bs-target="#addUserModal"]');
+                const inputGroup = button.closest('.input-group');
+                if (inputGroup) {
+                    currentTriggeredSelect = inputGroup.querySelector('select');
+                }
+            }
+        });
+
+        // Reset user modal form when modal is closed
+        userModal.addEventListener('hidden.bs.modal', function() {
+            addUserForm.reset();
+            addUserForm.querySelectorAll('.is-invalid').forEach(field => {
+                field.classList.remove('is-invalid');
+            });
+            addUserForm.querySelectorAll('.invalid-feedback').forEach(feedback => {
+                feedback.textContent = '';
+            });
+            userModalAlert.style.display = 'none';
+        });
+
+        // Auto-generate password and set role when modal is shown
+        userModal.addEventListener('show.bs.modal', function() {
+            // Generate a random password
+            const password = generateRandomPassword();
+            document.getElementById('modal_user_password').value = password;
+            
+            // Set role to employee
+            document.getElementById('modal_user_role').value = 'employee';
+        });
+
+        // Function to generate random password
+        function generateRandomPassword() {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*';
+            let password = '';
+            for (let i = 0; i < 12; i++) {
+                password += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return password;
+        }
+
+        // Multiple image upload handling
+        const imageInput = document.getElementById('images');
+        const imagePreview = document.getElementById('imagePreview');
+        const imagePreviewContainer = document.getElementById('imagePreviewContainer');
+        const maxFileSize = 10 * 1024 * 1024; // 10MB in bytes
+
+        imageInput.addEventListener('change', function(e) {
+            const files = Array.from(e.target.files);
+            imagePreviewContainer.innerHTML = '';
+            
+            if (files.length === 0) {
+                imagePreview.style.display = 'none';
+                return;
+            }
+
+            // Validate file sizes
+            const oversizedFiles = files.filter(file => file.size > maxFileSize);
+            if (oversizedFiles.length > 0) {
+                alert(`The following files exceed 10MB limit:\n${oversizedFiles.map(f => f.name).join('\n')}`);
+                e.target.value = '';
+                imagePreview.style.display = 'none';
+                return;
+            }
+
+            // Validate file types
+            const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
+            const invalidFiles = files.filter(file => !allowedTypes.includes(file.type));
+            if (invalidFiles.length > 0) {
+                alert(`The following files have invalid formats:\n${invalidFiles.map(f => f.name).join('\n')}\n\nSupported formats: JPG, PNG, GIF, WEBP`);
+                e.target.value = '';
+                imagePreview.style.display = 'none';
+                return;
+            }
+
+            // Show previews
+            imagePreview.style.display = 'block';
+            
+            files.forEach((file, index) => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const col = document.createElement('div');
+                    col.className = 'col-md-3 mb-2';
+                    
+                    const card = document.createElement('div');
+                    card.className = 'card position-relative';
+                    card.style.height = '150px';
+                    
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.className = 'card-img-top';
+                    img.style.height = '120px';
+                    img.style.objectFit = 'cover';
+                    
+                    const cardBody = document.createElement('div');
+                    cardBody.className = 'card-body p-2';
+                    
+                    const fileName = document.createElement('small');
+                    fileName.className = 'text-muted';
+                    fileName.textContent = file.name.length > 15 ? file.name.substring(0, 15) + '...' : file.name;
+                    
+                    const fileSize = document.createElement('small');
+                    fileSize.className = 'text-muted d-block';
+                    fileSize.textContent = formatFileSize(file.size);
+                    
+                    const removeBtn = document.createElement('button');
+                    removeBtn.type = 'button';
+                    removeBtn.className = 'btn btn-sm btn-danger position-absolute';
+                    removeBtn.style.top = '5px';
+                    removeBtn.style.right = '5px';
+                    removeBtn.innerHTML = '×';
+                    removeBtn.onclick = function() {
+                        removeImageFromPreview(index);
+                    };
+                    
+                    cardBody.appendChild(fileName);
+                    cardBody.appendChild(fileSize);
+                    card.appendChild(img);
+                    card.appendChild(cardBody);
+                    card.appendChild(removeBtn);
+                    col.appendChild(card);
+                    imagePreviewContainer.appendChild(col);
+                };
+                reader.readAsDataURL(file);
+            });
+        });
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function removeImageFromPreview(index) {
+            const dt = new DataTransfer();
+            const input = document.getElementById('images');
+            const files = Array.from(input.files);
+            
+            files.forEach((file, i) => {
+                if (i !== index) {
+                    dt.items.add(file);
+                }
+            });
+            
+            input.files = dt.files;
+            
+            // Trigger change event to update preview
+            input.dispatchEvent(new Event('change'));
+        }
+
+        // Handle user form submission
+        function handleUserSubmit() {
+            // Show loading state
+            const spinner = saveUserBtn.querySelector('.spinner-border');
+            const btnText = saveUserBtn.querySelector('.btn-text');
+            spinner.classList.remove('d-none');
+            btnText.textContent = 'Adding...';
+            saveUserBtn.disabled = true;
+
+            // Clear previous errors
+            addUserForm.querySelectorAll('.is-invalid').forEach(field => {
+                field.classList.remove('is-invalid');
+            });
+            addUserForm.querySelectorAll('.invalid-feedback').forEach(feedback => {
+                feedback.textContent = '';
+            });
+            userModalAlert.style.display = 'none';
+
+            // Prepare form data
+            const formData = new FormData(addUserForm);
+            formData.append('_token', document.querySelector('meta[name="csrf-token"]').getAttribute('content'));
+
+            // Submit via AJAX
+            fetch('{{ route("user-management.storeAjax") }}', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Add new user to all user dropdowns
+                    const newOption = document.createElement('option');
+                    newOption.value = data.user.id;
+                    newOption.textContent = data.user.name;
+                    
+                    purchasedBySelect.appendChild(newOption.cloneNode(true));
+                    receivedBySelect.appendChild(newOption.cloneNode(true));
+                    assignedToSelect.appendChild(newOption.cloneNode(true));
+                    
+                    // Select the new user in the dropdown that triggered the modal
+                    if (currentTriggeredSelect) {
+                        currentTriggeredSelect.value = data.user.id;
+                        // Trigger change event to update any dependent fields
+                        currentTriggeredSelect.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
+                    
+                    // Show success message
+                    userModalAlert.className = 'alert alert-success';
+                    userModalAlert.textContent = 'User added successfully!';
+                    userModalAlert.style.display = 'block';
+                    
+                    // Close modal after a short delay
+                    setTimeout(() => {
+                        const modal = bootstrap.Modal.getInstance(userModal);
+                        modal.hide();
+                    }, 1500);
+                } else {
+                    // Handle validation errors
+                    if (data.errors) {
+                        Object.keys(data.errors).forEach(field => {
+                            const input = addUserForm.querySelector(`[name="${field}"]`);
+                            if (input) {
+                                input.classList.add('is-invalid');
+                                const feedback = input.parentElement.querySelector('.invalid-feedback');
+                                if (feedback) {
+                                    feedback.textContent = data.errors[field][0];
+                                }
+                            }
+                        });
+                    } else {
+                        // Show general error
+                        userModalAlert.className = 'alert alert-danger';
+                        userModalAlert.textContent = data.message || 'An error occurred while adding the user.';
+                        userModalAlert.style.display = 'block';
+                    }
+                }
+            })
+            .catch(error => {
+                userModalAlert.className = 'alert alert-danger';
+                userModalAlert.textContent = 'An error occurred while adding the user: ' + error.message;
+                userModalAlert.style.display = 'block';
+            })
+            .finally(() => {
+                // Reset loading state
+                spinner.classList.add('d-none');
+                btnText.textContent = 'Add User';
+                saveUserBtn.disabled = false;
+            });
+        }
+
+        // Handle user form submission
+        addUserForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            handleUserSubmit();
+        });
+
+        // Handle user button click
+        saveUserBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            handleUserSubmit();
+        });
+
+        // Designation Modal functionality
+        const createDesignationForm = document.getElementById('createDesignationForm');
+        const designationModal = document.getElementById('createDesignationModal');
+        const saveDesignationBtn = document.getElementById('saveDesignationBtn');
+        const designationModalAlert = document.getElementById('designationModalAlert');
+        const designationSelect = document.getElementById('modal_user_designation_id');
+        const departmentSelect = document.getElementById('new_designation_department_id');
+
+        // Custom department selection functionality
+        const departmentInput = document.getElementById('new_designation_department_input');
+        const departmentHidden = document.getElementById('new_designation_department_id');
+        const departmentDropdown = document.getElementById('departmentDropdown');
+        const createNewDepartmentBtn = document.getElementById('createNewDepartment');
+        let isNewDepartment = false;
+
+        // Show dropdown when input is focused
+        departmentInput.addEventListener('focus', function() {
+            departmentDropdown.style.display = 'block';
+            filterDepartments();
+        });
+
+        // Hide dropdown when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('#new_designation_department_input') && !e.target.closest('#departmentDropdown')) {
+                departmentDropdown.style.display = 'none';
+            }
+        });
+
+        // Filter departments as user types
+        departmentInput.addEventListener('input', function() {
+            filterDepartments();
+            isNewDepartment = true; // Assume new department when typing
+        });
+
+        // Handle department selection
+        departmentDropdown.addEventListener('click', function(e) {
+            e.preventDefault();
+            if (e.target.closest('#createNewDepartment')) {
+                // User wants to create new department
+                isNewDepartment = true;
+                departmentHidden.value = '';
+                departmentDropdown.style.display = 'none';
+            } else if (e.target.classList.contains('dropdown-item') && e.target.dataset.id) {
+                // User selected existing department
+                const selectedId = e.target.dataset.id;
+                const selectedName = e.target.dataset.name;
+                departmentInput.value = selectedName;
+                departmentHidden.value = selectedId;
+                isNewDepartment = false;
+                departmentDropdown.style.display = 'none';
+            }
+        });
+
+        // Filter departments based on input
+        function filterDepartments() {
+            const inputValue = departmentInput.value.toLowerCase();
+            const departmentItems = departmentDropdown.querySelectorAll('.dropdown-item[data-id]');
+            
+            departmentItems.forEach(item => {
+                const departmentName = item.dataset.name.toLowerCase();
+                if (departmentName.includes(inputValue)) {
+                    item.style.display = 'block';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }
+
+        // Reset designation modal form when modal is closed
+        designationModal.addEventListener('hidden.bs.modal', function() {
+            createDesignationForm.reset();
+            departmentInput.value = '';
+            departmentHidden.value = '';
+            departmentDropdown.style.display = 'none';
+            isNewDepartment = false;
+            createDesignationForm.querySelectorAll('.is-invalid').forEach(field => {
+                field.classList.remove('is-invalid');
+            });
+            createDesignationForm.querySelectorAll('.invalid-feedback').forEach(feedback => {
+                feedback.textContent = '';
+            });
+            designationModalAlert.style.display = 'none';
+        });
+
+        // Handle designation form submission
+        function handleDesignationSubmit() {
+            // Show loading state
+            const spinner = saveDesignationBtn.querySelector('.spinner-border');
+            const btnText = saveDesignationBtn.querySelector('.btn-text');
+            spinner.classList.remove('d-none');
+            btnText.textContent = 'Creating...';
+            saveDesignationBtn.disabled = true;
+
+            // Clear previous errors
+            createDesignationForm.querySelectorAll('.is-invalid').forEach(field => {
+                field.classList.remove('is-invalid');
+            });
+            createDesignationForm.querySelectorAll('.invalid-feedback').forEach(feedback => {
+                feedback.textContent = '';
+            });
+            designationModalAlert.style.display = 'none';
+
+            // Get department values
+            const departmentName = departmentInput.value.trim();
+            const departmentId = departmentHidden.value;
+
+            // Validate department input
+            if (!departmentName) {
+                departmentInput.classList.add('is-invalid');
+                const feedback = departmentInput.parentElement.querySelector('.invalid-feedback');
+                if (feedback) {
+                    feedback.textContent = 'Please enter a department name';
+                }
+                return;
+            }
+
+            // Prepare form data
+            const formData = new FormData(createDesignationForm);
+            formData.append('_token', document.querySelector('meta[name="csrf-token"]').getAttribute('content'));
+            
+            // Set department values
+            if (isNewDepartment || !departmentId) {
+                formData.set('department_id', '');
+                formData.append('department_name', departmentName);
+            } else {
+                formData.set('department_id', departmentId);
+            }
+
+            // Submit via AJAX
+            fetch('{{ route("designation.storeAjax") }}', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Add new designation to the select dropdown
+                    const newOption = document.createElement('option');
+                    newOption.value = data.designation.id;
+                    newOption.textContent = data.designation.name + ' (' + data.designation.department_name + ')';
+                    designationSelect.appendChild(newOption);
+                    
+                    // Select the new designation
+                    designationSelect.value = data.designation.id;
+                    
+                    // Show success message
+                    designationModalAlert.className = 'alert alert-success';
+                    designationModalAlert.textContent = 'Designation created successfully!';
+                    designationModalAlert.style.display = 'block';
+                    
+                    // Close modal after a short delay
+                    setTimeout(() => {
+                        const modal = bootstrap.Modal.getInstance(designationModal);
+                        modal.hide();
+                    }, 1500);
+                } else {
+                    // Handle validation errors
+                    if (data.errors) {
+                        Object.keys(data.errors).forEach(field => {
+                            const input = createDesignationForm.querySelector(`[name="${field}"]`);
+                            if (input) {
+                                input.classList.add('is-invalid');
+                                const feedback = input.parentElement.querySelector('.invalid-feedback');
+                                if (feedback) {
+                                    feedback.textContent = data.errors[field][0];
+                                }
+                            }
+                        });
+                    } else {
+                        // Show general error
+                        designationModalAlert.className = 'alert alert-danger';
+                        designationModalAlert.textContent = data.message || 'An error occurred while creating the designation.';
+                        designationModalAlert.style.display = 'block';
+                    }
+                }
+            })
+            .catch(error => {
+                designationModalAlert.className = 'alert alert-danger';
+                designationModalAlert.textContent = 'An error occurred while creating the designation: ' + error.message;
+                designationModalAlert.style.display = 'block';
+            })
+            .finally(() => {
+                // Reset loading state
+                spinner.classList.add('d-none');
+                btnText.textContent = 'Create Designation';
+                saveDesignationBtn.disabled = false;
+            });
+        }
+
+        // Handle designation form submission
+        createDesignationForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            handleDesignationSubmit();
+        });
+
+        // Handle designation button click
+        saveDesignationBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            handleDesignationSubmit();
+        });
+
+        // Auto-generate email when name changes
+        document.getElementById('modal_user_name').addEventListener('input', function() {
+            const emailField = document.getElementById('modal_user_email');
+            if (!emailField.value) {
+                const name = this.value.toLowerCase().replace(/\s+/g, '.');
+                const generatedEmail = name + '@company.com';
+                emailField.value = generatedEmail;
+            }
+        });
+
+        // Barcode functionality
+        const barcodeInput = document.getElementById('barcode');
+        const generateBarcodeBtn = document.getElementById('generateBarcodeBtn');
+        const downloadBarcodeBtn = document.getElementById('downloadBarcodeBtn');
+        const barcodePreview = document.getElementById('barcodePreview');
+        const barcodeCanvas = document.getElementById('barcodeCanvas');
+        const assetTagInput = document.getElementById('asset_tag');
+
+        // Generate barcode from asset tag
+        function generateBarcode() {
+            const assetTag = assetTagInput.value.trim();
+            if (!assetTag) {
+                alert('Please enter an asset tag first');
+                return;
+            }
+
+            // Set barcode value to asset tag
+            barcodeInput.value = assetTag;
+
+            // Generate barcode visual
+            try {
+                JsBarcode(barcodeCanvas, assetTag, {
+                    format: "CODE128",
+                    width: 2,
+                    height: 100,
+                    displayValue: true,
+                    fontSize: 16,
+                    margin: 10
+                });
+                
+                // Show preview and download button
+                barcodePreview.style.display = 'block';
+                downloadBarcodeBtn.style.display = 'inline-block';
+            } catch (error) {
+                console.error('Error generating barcode:', error);
+                alert('Error generating barcode. Please try again.');
+            }
+        }
+
+        // Download barcode as PNG
+        function downloadBarcode() {
+            const canvas = barcodeCanvas;
+            const link = document.createElement('a');
+            link.download = `barcode_${barcodeInput.value}.png`;
+            link.href = canvas.toDataURL();
+            link.click();
+        }
+
+        // Event listeners
+        generateBarcodeBtn.addEventListener('click', generateBarcode);
+        downloadBarcodeBtn.addEventListener('click', downloadBarcode);
+
+        // Auto-generate barcode when asset tag changes (if barcode is empty)
+        assetTagInput.addEventListener('input', function() {
+            if (!barcodeInput.value && this.value.trim()) {
+                generateBarcode();
+            }
+        });
+
     });
 </script>
 @endpush

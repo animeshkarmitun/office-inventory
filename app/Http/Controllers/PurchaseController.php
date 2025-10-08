@@ -4,13 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Models\Purchase;
 use App\Models\PurchaseItem;
+use App\Models\PurchaseImage;
 use Illuminate\Http\Request;
 
 class PurchaseController extends Controller
 {
     public function index(Request $request)
     {
-        $query = \App\Models\Purchase::with(['supplier', 'department']);
+        $query = \App\Models\Purchase::with(['supplier', 'department', 'images']);
         if ($request->filled('search')) {
             $search = $request->input('search');
             $query->where(function($q) use ($search) {
@@ -40,8 +41,9 @@ class PurchaseController extends Controller
     {
         $request->validate([
             'supplier_id' => 'required|exists:suppliers,id',
-            'invoice_number' => 'required|string|max:255',
-            'invoice_image' => 'nullable|file|mimes:webp,jpeg,png,pdf|max:4096',
+            'invoice_number' => 'nullable|string|max:255',
+            'invoice_images' => 'nullable|array|max:10',
+            'invoice_images.*' => 'file|mimes:webp,jpeg,png,pdf|max:4096',
             'purchase_date' => 'required|date',
             'purchased_by' => 'required|exists:users,id',
             'received_by' => 'required|exists:users,id',
@@ -53,10 +55,11 @@ class PurchaseController extends Controller
             'items.*.item_type' => 'nullable|string|max:255',
         ]);
 
-        // Handle invoice image upload
+        // Handle multiple invoice image uploads
         $invoiceImagePath = null;
-        if ($request->hasFile('invoice_image')) {
-            $file = $request->file('invoice_image');
+        if ($request->hasFile('invoice_images') && count($request->file('invoice_images')) > 0) {
+            // For backward compatibility, use the first image as the main invoice image
+            $file = $request->file('invoice_images')[0];
             $filename = 'invoices/' . uniqid('invoice_') . '.' . $file->getClientOriginalExtension();
             $file->storeAs('public', $filename);
             $invoiceImagePath = $filename;
@@ -79,6 +82,22 @@ class PurchaseController extends Controller
             'department_id' => $request->department_id,
             'purchase_number' => \App\Models\Purchase::generatePurchaseNumber(),
         ]);
+
+        // Handle multiple invoice image uploads
+        if ($request->hasFile('invoice_images')) {
+            foreach ($request->file('invoice_images') as $file) {
+                $filename = 'purchase_images/' . uniqid('purchase_') . '.' . $file->getClientOriginalExtension();
+                $file->storeAs('public', $filename);
+                
+                PurchaseImage::create([
+                    'purchase_id' => $purchase->id,
+                    'image_path' => $filename,
+                    'original_name' => $file->getClientOriginalName(),
+                    'mime_type' => $file->getMimeType(),
+                    'file_size' => $file->getSize(),
+                ]);
+            }
+        }
 
         // Create purchase items and inventory items
         foreach ($request->items as $itemData) {
@@ -117,13 +136,13 @@ class PurchaseController extends Controller
 
     public function show($id)
     {
-        $purchase = \App\Models\Purchase::with(['supplier', 'items', 'purchasedBy', 'receivedBy', 'department'])->findOrFail($id);
+        $purchase = \App\Models\Purchase::with(['supplier', 'items', 'purchasedBy', 'receivedBy', 'department', 'images'])->findOrFail($id);
         return view('pages.purchase.show', compact('purchase'));
     }
 
     public function edit($id)
     {
-        $purchase = \App\Models\Purchase::with(['supplier', 'items', 'purchasedBy', 'receivedBy', 'department'])->findOrFail($id);
+        $purchase = \App\Models\Purchase::with(['supplier', 'items', 'purchasedBy', 'receivedBy', 'department', 'images'])->findOrFail($id);
         $suppliers = \App\Models\Supplier::all();
         $users = \App\Models\User::all();
         $departments = \App\Models\Department::all();
@@ -135,8 +154,9 @@ class PurchaseController extends Controller
         $purchase = \App\Models\Purchase::with('items')->findOrFail($id);
         $request->validate([
             'supplier_id' => 'required|exists:suppliers,id',
-            'invoice_number' => 'required|string|max:255',
-            'invoice_image' => 'nullable|file|mimes:webp,jpeg,png,pdf|max:4096',
+            'invoice_number' => 'nullable|string|max:255',
+            'invoice_images' => 'nullable|array|max:10',
+            'invoice_images.*' => 'file|mimes:webp,jpeg,png,pdf|max:4096',
             'purchase_date' => 'required|date',
             'purchased_by' => 'required|exists:users,id',
             'received_by' => 'required|exists:users,id',
@@ -148,10 +168,11 @@ class PurchaseController extends Controller
             'items.*.item_type' => 'nullable|string|max:255',
         ]);
 
-        // Handle invoice image upload
+        // Handle multiple invoice image uploads
         $invoiceImagePath = $purchase->invoice_image;
-        if ($request->hasFile('invoice_image')) {
-            $file = $request->file('invoice_image');
+        if ($request->hasFile('invoice_images') && count($request->file('invoice_images')) > 0) {
+            // For backward compatibility, use the first image as the main invoice image
+            $file = $request->file('invoice_images')[0];
             $filename = 'invoices/' . uniqid('invoice_') . '.' . $file->getClientOriginalExtension();
             $file->storeAs('public', $filename);
             $invoiceImagePath = $filename;
@@ -173,6 +194,22 @@ class PurchaseController extends Controller
             'received_by' => $request->received_by,
             'department_id' => $request->department_id,
         ]);
+
+        // Handle multiple invoice image uploads (add new images)
+        if ($request->hasFile('invoice_images')) {
+            foreach ($request->file('invoice_images') as $file) {
+                $filename = 'purchase_images/' . uniqid('purchase_') . '.' . $file->getClientOriginalExtension();
+                $file->storeAs('public', $filename);
+                
+                PurchaseImage::create([
+                    'purchase_id' => $purchase->id,
+                    'image_path' => $filename,
+                    'original_name' => $file->getClientOriginalName(),
+                    'mime_type' => $file->getMimeType(),
+                    'file_size' => $file->getSize(),
+                ]);
+            }
+        }
 
         // Delete old purchase items and inventory items (optional: only if you want to fully replace)
         $purchase->items()->delete();
@@ -225,9 +262,28 @@ class PurchaseController extends Controller
         // Delete purchase items first
         $purchase->items()->delete();
         
+        // Delete purchase images
+        $purchase->images()->delete();
+        
         // Delete the purchase
         $purchase->delete();
 
         return redirect()->route('purchase.index')->with(['message' => 'Purchase deleted successfully', 'alert' => 'alert-success']);
     }
-} 
+
+    public function deleteImage($id, $imageId)
+    {
+        $purchase = \App\Models\Purchase::findOrFail($id);
+        $image = $purchase->images()->findOrFail($imageId);
+        
+        // Delete file from storage
+        if (\Storage::disk('public')->exists($image->image_path)) {
+            \Storage::disk('public')->delete($image->image_path);
+        }
+        
+        // Delete from database
+        $image->delete();
+        
+        return redirect()->back()->with(['message' => 'Image deleted successfully', 'alert' => 'alert-success']);
+    }
+}

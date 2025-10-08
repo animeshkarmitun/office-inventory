@@ -12,17 +12,28 @@ class DashboardController extends Controller
     {
         if (auth()->check()) {
             $role = auth()->user()->role;
-            if ($role === 'super_admin') {
-                return redirect()->route('user-management.index');
-            } elseif ($role === 'admin') {
-                return redirect()->route('admin.dashboard');
-            } elseif ($role === 'asset_manager') {
-                return redirect()->route('asset-manager.dashboard');
-            } else {
-                return redirect()->route('employee.dashboard');
+            
+            // Add debugging to see what's happening
+            \Log::info('Dashboard redirect for user role: ' . $role);
+            
+            switch ($role) {
+                case 'super_admin':
+                    return redirect()->route('user-management.index');
+                case 'admin':
+                    return redirect()->route('admin.dashboard');
+                case 'asset_manager':
+                    return redirect()->route('asset-manager.dashboard');
+                case 'employee':
+                    return redirect()->route('employee.dashboard');
+                default:
+                    // If role is not recognized, show a default dashboard
+                    \Log::warning('Unknown user role: ' . $role);
+                    return view('dashboard');
             }
         }
-        return view('dashboard');
+        
+        // If not authenticated, redirect to login
+        return redirect()->route('index');
     }
 
     public function adminDashboard()

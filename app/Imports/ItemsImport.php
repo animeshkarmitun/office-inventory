@@ -72,6 +72,7 @@ class ItemsImport implements ToCollection, WithHeadingRow, WithValidation, Skips
             'barcode' => $row['barcode'] ?? null,
             'rfid_tag' => $row['rfid_tag'] ?? null,
             'description' => $row['description'] ?? null,
+            'specifications' => $row['specifications'] ?? null,
             'asset_type' => strtolower($row['asset_type'] ?? 'fixed'),
             'value' => $this->parseCurrency($row['value'] ?? 0),
             'depreciation_cost' => $this->parseCurrency($row['depreciation_cost'] ?? 0),

@@ -224,7 +224,7 @@ class ImageService
     protected function validateImage(UploadedFile $image)
     {
         $allowedMimes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'];
-        $maxSize = 2 * 1024 * 1024; // 2MB
+        $maxSize = 10 * 1024 * 1024; // 10MB
 
         if (!in_array($image->getMimeType(), $allowedMimes)) {
             throw new Exception('Invalid image format. Allowed formats: JPEG, PNG, GIF, WebP');

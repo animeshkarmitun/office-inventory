@@ -23,6 +23,8 @@ class User extends Authenticatable
         'password',
         'role',
         'is_admin',
+        'department_id',
+        'designation_id',
     ];
 
     /**
@@ -47,5 +49,15 @@ class User extends Authenticatable
     public function borrowers()
     {
         return $this->hasMany(Borrower::class);
+    }
+
+    public function department()
+    {
+        return $this->belongsTo(Department::class);
+    }
+
+    public function designation()
+    {
+        return $this->belongsTo(Designation::class);
     }
 }

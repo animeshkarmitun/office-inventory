@@ -23,4 +23,9 @@ class Department extends Model
     {
         return $this->hasMany(Borrower::class);
     }
+
+    public function designations()
+    {
+        return $this->hasMany(Designation::class);
+    }
 }

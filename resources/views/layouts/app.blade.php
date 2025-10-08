@@ -13,8 +13,23 @@
     <!-- Custom CSS for typography and spacing -->
     <link href="{{ asset('css/app.css') }}" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- Font Awesome CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- Select2 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
     <style>
         body { background-color: #f8f9fa; }
+        
+        /* Ensure Font Awesome icons display properly */
+        .fas, .far, .fab {
+            font-family: "Font Awesome 6 Free", "Font Awesome 6 Pro", "Font Awesome 6 Brands" !important;
+            font-weight: 900;
+        }
+        
+        .far {
+            font-weight: 400;
+        }
         .layout-wrapper {
             display: flex;
             min-height: 100vh;
@@ -119,9 +134,13 @@
                         <li class="nav-item"><a class="nav-link {{ request()->routeIs('supplier') ? 'active' : '' }}" href="{{ route('supplier') }}" data-bs-toggle="tooltip" data-bs-placement="right" title="Suppliers"><i class="bi bi-truck"></i> <span class="link-text">Suppliers</span></a></li>
                         <li class="nav-item"><a class="nav-link {{ request()->routeIs('purchase.*') ? 'active' : '' }}" href="{{ route('purchase.index') }}" data-bs-toggle="tooltip" data-bs-placement="right" title="Purchases"><i class="bi bi-cart4"></i> <span class="link-text">Purchases</span></a></li>
                         <li class="nav-item"><a class="nav-link {{ request()->routeIs('category') ? 'active' : '' }}" href="{{ route('category') }}" data-bs-toggle="tooltip" data-bs-placement="right" title="Category"><i class="bi bi-tags"></i> <span class="link-text">Category</span></a></li>
-                        <li class="nav-item"><a class="nav-link {{ request()->routeIs('department') ? 'active' : '' }}" href="{{ route('department') }}" data-bs-toggle="tooltip" data-bs-placement="right" title="Department"><i class="bi bi-building"></i> <span class="link-text">Department</span></a></li>
+                        <li class="nav-item"><a class="nav-link {{ request()->routeIs('department*') ? 'active' : '' }}" href="{{ route('department') }}" data-bs-toggle="tooltip" data-bs-placement="right" title="Department Management"><i class="bi bi-building"></i> <span class="link-text">Department</span></a></li>
                         <li class="nav-item"><a class="nav-link {{ request()->routeIs('borrower') ? 'active' : '' }}" href="{{ route('borrower') }}" data-bs-toggle="tooltip" data-bs-placement="right" title="Borrower"><i class="bi bi-people"></i> <span class="link-text">Borrower</span></a></li>
-                        <li class="nav-item"><a class="nav-link {{ request()->routeIs('depreciation.report') ? 'active' : '' }}" href="{{ route('depreciation.report') }}" data-bs-toggle="tooltip" data-bs-placement="right" title="Depreciation Report"><i class="bi bi-graph-up"></i> <span class="link-text">Depreciation Report</span></a></li>
+                        <li class="nav-item"><a class="nav-link {{ request()->routeIs('depreciation.report') ? 'active' : '' }}" href="{{ route('depreciation.report') }}" data-bs-toggle="tooltip" data-bs-placement="right" title="Depreciation Report"><i class="bi bi-graph-up"></i> <span class="link-text">Depreciation Report</span></a></li>                        
+                        @if(in_array(Auth::user()->role, ['super_admin', 'admin']))
+                            <li class="nav-item"><a class="nav-link {{ request()->routeIs('floor.*') ? 'active' : '' }}" href="{{ route('floor.index') }}" data-bs-toggle="tooltip" data-bs-placement="right" title="Floor Management"><i class="bi bi-building"></i> <span class="link-text">Floor Management</span></a></li>
+                            <li class="nav-item"><a class="nav-link {{ request()->routeIs('room.*') ? 'active' : '' }}" href="{{ route('room.index') }}" data-bs-toggle="tooltip" data-bs-placement="right" title="Room Management"><i class="bi bi-door-open"></i> <span class="link-text">Room Management</span></a></li>
+                        @endif
                         @if(Auth::user()->role === 'super_admin')
                             <li class="nav-item"><a class="nav-link {{ request()->routeIs('user-management.*') ? 'active' : '' }}" href="{{ route('user-management.index') }}" data-bs-toggle="tooltip" data-bs-placement="right" title="User Management"><i class="bi bi-person-gear"></i> <span class="link-text">User Management</span></a></li>
                             <li class="nav-item">
@@ -132,10 +151,6 @@
                                     </button>
                                 </form>
                             </li>
-                        @endif
-                        @if(in_array(Auth::user()->role, ['super_admin', 'admin']))
-                            <li class="nav-item"><a class="nav-link {{ request()->routeIs('floor.*') ? 'active' : '' }}" href="{{ route('floor.index') }}" data-bs-toggle="tooltip" data-bs-placement="right" title="Floor Management"><i class="bi bi-building"></i> <span class="link-text">Floor Management</span></a></li>
-                            <li class="nav-item"><a class="nav-link {{ request()->routeIs('room.*') ? 'active' : '' }}" href="{{ route('room.index') }}" data-bs-toggle="tooltip" data-bs-placement="right" title="Room Management"><i class="bi bi-door-open"></i> <span class="link-text">Room Management</span></a></li>
                         @endif
                     @endauth
                 </ul>
@@ -162,8 +177,14 @@
             </div>
         </div>
     </div>
+    <!-- jQuery (required for Select2) -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <!-- Bootstrap JS (if not already included) -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Select2 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    <!-- Barcode Library -->
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
     <script>
         // Sidebar toggle for mobile and desktop
         document.addEventListener('DOMContentLoaded', function() {

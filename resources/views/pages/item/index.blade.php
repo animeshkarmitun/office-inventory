@@ -338,6 +338,7 @@
         box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
         opacity: 1;
         visibility: visible;
+        transition: all 0.15s ease-in-out;
     }
     
     .dropdown-menu.show {
@@ -465,6 +466,157 @@
         z-index: 9999 !important;
         transform: none !important;
     }
+    /* Custom Pagination Styles */
+    .pagination {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 0.5rem;
+        margin: 2rem 0;
+        padding: 0;
+        list-style: none;
+    }
+    
+    .pagination .page-item {
+        margin: 0;
+    }
+    
+    .pagination .page-link {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 40px;
+        height: 40px;
+        padding: 0.5rem 0.75rem;
+        margin: 0 0.125rem;
+        color: #6b7280;
+        background-color: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 500;
+        font-size: 0.875rem;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    
+    .pagination .page-link:hover {
+        color: #2563eb;
+        background-color: #f8fafc;
+        border-color: #2563eb;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
+    }
+    
+    .pagination .page-item.active .page-link {
+        color: #fff;
+        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+        border-color: #2563eb;
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+    }
+    
+    .pagination .page-item.disabled .page-link {
+        color: #9ca3af;
+        background-color: #f9fafb;
+        border-color: #e5e7eb;
+        cursor: not-allowed;
+        opacity: 0.6;
+    }
+    
+    .pagination .page-item.disabled .page-link:hover {
+        transform: none;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    
+    /* Previous/Next button styling */
+    .pagination .page-item:first-child .page-link,
+    .pagination .page-item:last-child .page-link {
+        font-weight: 600;
+        min-width: 80px;
+    }
+    
+    /* Ellipsis styling */
+    .pagination .page-item .page-link[aria-label*="ellipsis"] {
+        background: none;
+        border: none;
+        box-shadow: none;
+        cursor: default;
+    }
+    
+    .pagination .page-item .page-link[aria-label*="ellipsis"]:hover {
+        transform: none;
+        box-shadow: none;
+        background: none;
+        border: none;
+    }
+    
+    /* Pagination wrapper */
+    .pagination-wrapper {
+        background: #fff;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin: 2rem 0;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+        border: 1px solid #e5e7eb;
+    }
+    
+    /* Pagination info text */
+    .pagination-info {
+        text-align: center;
+        color: #6b7280;
+        font-size: 0.875rem;
+        margin: 0 0 1.5rem 0;
+        font-weight: 500;
+        background: #f8fafc;
+        padding: 0.75rem 1rem;
+        border-radius: 8px;
+        border: 1px solid #e5e7eb;
+    }
+    
+    /* Override Bootstrap pagination styles */
+    .pagination .page-item .page-link {
+        border-radius: 8px !important;
+        border: 1px solid #e5e7eb !important;
+        margin: 0 0.125rem !important;
+        padding: 0.5rem 0.75rem !important;
+    }
+    
+    /* Remove any existing large icons or special characters */
+    .pagination .page-item .page-link i,
+    .pagination .page-item .page-link svg {
+        display: none !important;
+    }
+    
+    /* Ensure no large special characters are displayed */
+    .pagination .page-item .page-link::before,
+    .pagination .page-item .page-link::after {
+        display: none !important;
+    }
+    
+    /* Responsive pagination */
+    @media (max-width: 640px) {
+        .pagination {
+            flex-wrap: wrap;
+            gap: 0.25rem;
+        }
+        
+        .pagination .page-link {
+            min-width: 36px;
+            height: 36px;
+            font-size: 0.8rem;
+            padding: 0.375rem 0.5rem;
+        }
+        
+        .pagination .page-item:first-child .page-link,
+        .pagination .page-item:last-child .page-link {
+            min-width: 60px;
+        }
+        
+        .pagination-wrapper {
+            padding: 1rem;
+        }
+    }
+    
     @media (max-width: 767.98px) {
         .item-controls {
             flex-direction: column;
@@ -488,29 +640,31 @@
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Simple dropdown toggle functionality
+    // Enhanced dropdown toggle functionality
     document.querySelectorAll('.dropdown-toggle').forEach(function(toggle) {
         toggle.addEventListener('click', function(e) {
             e.preventDefault();
             e.stopPropagation();
             
-            // Close all other dropdowns
-            document.querySelectorAll('.dropdown-menu.show').forEach(function(menu) {
-                menu.classList.remove('show');
+            var menu = this.nextElementSibling;
+            var isCurrentlyOpen = menu && menu.classList.contains('show');
+            
+            // Close all other dropdowns first
+            document.querySelectorAll('.dropdown-menu.show').forEach(function(otherMenu) {
+                otherMenu.classList.remove('show');
+                otherMenu.style.display = 'none';
             });
             
             // Toggle current dropdown
-            var menu = this.nextElementSibling;
             if (menu) {
-                menu.classList.toggle('show');
-                console.log('Toggling dropdown for:', this.id);
-                console.log('Menu items count:', menu.querySelectorAll('li').length);
-                console.log('Menu display style:', window.getComputedStyle(menu).display);
-                console.log('Menu opacity:', window.getComputedStyle(menu).opacity);
-                console.log('Menu visibility:', window.getComputedStyle(menu).visibility);
-                
-                // Force visibility and positioning
-                if (menu.classList.contains('show')) {
+                if (isCurrentlyOpen) {
+                    // Close the dropdown
+                    menu.classList.remove('show');
+                    menu.style.display = 'none';
+                    this.setAttribute('aria-expanded', 'false');
+                } else {
+                    // Open the dropdown
+                    menu.classList.add('show');
                     menu.style.display = 'block';
                     menu.style.opacity = '1';
                     menu.style.visibility = 'visible';
@@ -519,6 +673,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     menu.style.top = '100%';
                     menu.style.right = '0';
                     menu.style.left = 'auto';
+                    this.setAttribute('aria-expanded', 'true');
                 }
             }
         });
@@ -529,6 +684,17 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!e.target.closest('.dropdown')) {
             document.querySelectorAll('.dropdown-menu.show').forEach(function(menu) {
                 menu.classList.remove('show');
+                menu.style.display = 'none';
+            });
+        }
+    });
+    
+    // Close dropdowns when pressing Escape key
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            document.querySelectorAll('.dropdown-menu.show').forEach(function(menu) {
+                menu.classList.remove('show');
+                menu.style.display = 'none';
             });
         }
     });
@@ -560,6 +726,45 @@ document.addEventListener('DOMContentLoaded', function() {
             }, 5000);
         });
     }
-});
+    });
+
+    // Barcode functionality for table
+    function generateTableBarcodes() {
+        @foreach($items as $item)
+            @php
+                $barcodeValue = $item->barcode ?: $item->asset_tag;
+            @endphp
+            @if($barcodeValue)
+                try {
+                    console.log('Generating barcode for item {{ $item->id }} with value: {{ $barcodeValue }}');
+                        JsBarcode(document.getElementById('barcode-{{ $item->id }}'), '{{ $barcodeValue }}', {
+                            format: "CODE128",
+                            width: 1.2,
+                            height: 30,
+                            displayValue: false,
+                            margin: 1
+                        });
+                    console.log('Barcode generated successfully for item {{ $item->id }}');
+                } catch (error) {
+                    console.error('Error generating barcode for item {{ $item->id }}:', error);
+                }
+            @endif
+        @endforeach
+    }
+
+    function downloadBarcodeFromTable(barcodeValue, itemId) {
+        const canvas = document.getElementById('barcode-' + itemId);
+        const link = document.createElement('a');
+        link.download = `barcode_${barcodeValue}.png`;
+        link.href = canvas.toDataURL();
+        link.click();
+    }
+
+    // Generate barcodes when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('Generating table barcodes...');
+        generateTableBarcodes();
+        console.log('Table barcodes generation completed');
+    });
 </script>
 @endpush

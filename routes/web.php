@@ -4,6 +4,7 @@ use App\Http\Controllers\BorrowerController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DepartmentController;
+use App\Http\Controllers\DesignationController;
 use App\Http\Controllers\ItemController;
 use App\Http\Controllers\LoginController;
 use App\Http\Controllers\ProfileController;
@@ -49,6 +50,10 @@ Route::middleware('auth')->group(function () {
     // User Management (Super Admin Only)
     Route::middleware('role:super_admin')->group(function () {
         Route::resource('user-management', UserManagementController::class);
+        Route::post('user-management/store-ajax', [UserManagementController::class, 'storeAjax'])->name('user-management.storeAjax');
+        
+        // Designation Management
+        Route::post('designation/store-ajax', [DesignationController::class, 'storeAjax'])->name('designation.storeAjax');
     });
 
     // Floor Management (Super Admin & Admin)
@@ -73,6 +78,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/import', 'showImport')->name('.showImport');
         Route::post('/import', 'import')->name('.import');
         Route::get('/template', 'downloadTemplate')->name('.template');
+        Route::delete('/{id}/remove-legacy-image', 'removeLegacyImage')->name('.removeLegacyImage');
+        Route::delete('/item-image/{id}', 'removeImage')->name('image.remove');
+        Route::get('/assign-from-purchase/{purchaseId}/{itemId}', 'assignFromPurchase')->name('.assignFromPurchase');
     });
 
     // Supplier
@@ -104,6 +112,15 @@ Route::middleware('auth')->group(function () {
         Route::get('/{id}/delete', 'destroy')->name('.destroy');
         Route::get('/{id}/edit', 'showEdit')->name('.showEdit');
         Route::post('/{id}/edit', 'update')->name('.update');
+        
+        // Designation management under department
+        Route::get('/designations', 'designations')->name('.designations');
+        Route::get('/designations/create', 'createDesignation')->name('.create-designation');
+        Route::post('/designations', 'storeDesignation')->name('.store-designation');
+        Route::get('/designations/{designation}', 'showDesignation')->name('.show-designation');
+        Route::get('/designations/{designation}/edit', 'editDesignation')->name('.edit-designation');
+        Route::put('/designations/{designation}', 'updateDesignation')->name('.update-designation');
+        Route::delete('/designations/{designation}', 'destroyDesignation')->name('.destroy-designation');
     });
 
     // Borrower
@@ -124,6 +141,7 @@ Route::middleware('auth')->group(function () {
 
     // Purchase
     Route::resource('purchase', PurchaseController::class)->only(['index', 'create', 'store', 'show', 'edit', 'update', 'destroy']);
+    Route::delete('purchase/{purchase}/image/{image}', [App\Http\Controllers\PurchaseController::class, 'deleteImage'])->name('purchase.deleteImage');
 });
 
 // Admin routes
@@ -146,6 +164,7 @@ Route::middleware(['auth', 'role:employee'])->group(function () {
 
 Route::get('/depreciation-report', [ItemController::class, 'depreciationReport'])->name('depreciation.report');
 Route::get('item/{item}/history', [App\Http\Controllers\ItemController::class, 'history'])->name('item.history');
+Route::get('item/{item}/history/pdf', [App\Http\Controllers\ItemController::class, 'exportHistoryPdf'])->name('item.history.pdf');
 Route::get('borrower/{borrower}/history', [App\Http\Controllers\BorrowerController::class, 'history'])->name('borrower.history');
 Route::get('supplier/{supplier}/purchases', [App\Http\Controllers\SupplierController::class, 'purchases'])->name('supplier.purchases');
 

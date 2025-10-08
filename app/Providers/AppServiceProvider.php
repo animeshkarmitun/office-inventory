@@ -39,6 +39,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot()
     {
-        //
+        // Use custom pagination view
+        \Illuminate\Pagination\Paginator::defaultView('vendor.pagination.bootstrap-4');
     }
 }
