@@ -28,12 +28,13 @@
                             <div class="carousel-inner">
                                 @foreach($item->images as $index => $image)
                                     <div class="carousel-item {{ $index === 0 ? 'active' : '' }}">
-                                        <div style="max-height: 300px; max-width: 100%; overflow: hidden;">
+                                        <div style="height: 300px; max-width: 100%; overflow: hidden; cursor: pointer; display: flex; align-items: center; justify-content: center; background-color: #f8f9fa;" 
+                                             onclick="openImageModal('{{ asset('storage/' . $image->image_path) }}', '{{ $item->name }}', {{ $index }})">
                                             @if($image->image_path && file_exists(storage_path('app/public/' . $image->image_path)))
                                                 <img src="{{ asset('storage/' . $image->image_path) }}" 
                                                      alt="Image of {{ $item->name }}" 
                                                      class="img-fluid rounded shadow-sm"
-                                                     style="max-height: 300px; max-width: 100%; object-fit: contain;">
+                                                     style="max-height: 100%; max-width: 100%; object-fit: contain;">
                                             @else
                                                 <div class="bg-light rounded d-flex align-items-center justify-content-center" style="height: 300px; border: 2px dashed #dee2e6;">
                                                     <div class="text-center">
@@ -50,11 +51,11 @@
                             
                             @if($item->images->count() > 1)
                                 <button class="carousel-control-prev" type="button" data-bs-target="#imageCarousel" data-bs-slide="prev">
-                                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                                    <span class="carousel-control-prev-icon bg-dark" aria-hidden="true"></span>
                                     <span class="visually-hidden">Previous</span>
                                 </button>
                                 <button class="carousel-control-next" type="button" data-bs-target="#imageCarousel" data-bs-slide="next">
-                                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                                    <span class="carousel-control-next-icon bg-dark" aria-hidden="true"></span>
                                     <span class="visually-hidden">Next</span>
                                 </button>
                             @endif
@@ -62,28 +63,32 @@
                         
                         <div class="mt-2">
                             @if($item->images->first() && $item->images->first()->image_path && file_exists(storage_path('app/public/' . $item->images->first()->image_path)))
-                                <a href="{{ asset('storage/' . $item->images->first()->image_path) }}" 
-                                   target="_blank" 
-                                   class="btn btn-sm btn-outline-primary">
-                                    <i class="fas fa-external-link-alt"></i> View Full Size
-                                </a>
+                                <button type="button" 
+                                        class="btn btn-sm btn-outline-primary" 
+                                        data-bs-toggle="modal" 
+                                        data-bs-target="#imageModal"
+                                        onclick="openImageModal('{{ asset('storage/' . $item->images->first()->image_path) }}', '{{ $item->name }}', 0)">
+                                    <i class="fas fa-expand"></i> View Full Size
+                                </button>
                             @endif
                             <small class="text-muted d-block mt-1">{{ $item->images->count() }} image(s) available</small>
                         </div>
                     @elseif($item->image && \App\Helpers\ImageHelper::imageExists($item->image))
                         <!-- Display legacy single image -->
-                        <div style="max-height: 300px; max-width: 100%; overflow: hidden;">
+                        <div style="height: 300px; max-width: 100%; overflow: hidden; display: flex; align-items: center; justify-content: center; background-color: #f8f9fa;">
                             {!! \App\Helpers\ImageHelper::responsiveImage($item->image, 'Image of ' . $item->name, [
                                 'class' => 'img-fluid rounded shadow-sm',
-                                'style' => 'max-height: 300px; max-width: 100%; object-fit: contain;'
+                                'style' => 'max-height: 100%; max-width: 100%; object-fit: contain;'
                             ]) !!}
                         </div>
                         <div class="mt-2">
-                            <a href="{{ \App\Helpers\ImageHelper::getOriginalUrl($item->image) }}" 
-                               target="_blank" 
-                               class="btn btn-sm btn-outline-primary">
-                                <i class="fas fa-external-link-alt"></i> View Full Size
-                            </a>
+                            <button type="button" 
+                                    class="btn btn-sm btn-outline-primary" 
+                                    data-bs-toggle="modal" 
+                                    data-bs-target="#imageModal"
+                                    onclick="openImageModal('{{ \App\Helpers\ImageHelper::getOriginalUrl($item->image) }}', '{{ $item->name }}')">
+                                <i class="fas fa-expand"></i> View Full Size
+                            </button>
                         </div>
                     @else
                         <!-- No images available -->
@@ -202,7 +207,7 @@
                                 <li class="list-group-item d-flex justify-content-between align-items-start">
                                     <div>
                                         <strong>Value:</strong>
-                                        <br><span class="text-muted">{{ $item->value ? '$' . number_format($item->value, 2) : 'N/A' }}</span>
+                                        <br><span class="text-muted">{{ $item->value ? '৳' . number_format($item->value, 2) : 'N/A' }}</span>
                                     </div>
                                 </li>
                                 <li class="list-group-item d-flex justify-content-between align-items-start">
@@ -301,13 +306,13 @@
                                 <li class="list-group-item d-flex justify-content-between align-items-start">
                                     <div>
                                         <strong>Depreciation Cost:</strong>
-                                        <br><span class="text-muted">{{ $item->depreciation_cost ? '$' . number_format($item->depreciation_cost, 2) : 'N/A' }}</span>
+                                        <br><span class="text-muted">{{ $item->depreciation_cost ? '৳' . number_format($item->depreciation_cost, 2) : 'N/A' }}</span>
                                     </div>
                                 </li>
                                 <li class="list-group-item d-flex justify-content-between align-items-start">
                                     <div>
                                         <strong>Current Book Value:</strong>
-                                        <br><span class="text-muted">{{ $item->currentBookValue() ? '$' . number_format($item->currentBookValue(), 2) : 'N/A' }}</span>
+                                        <br><span class="text-muted">{{ $item->currentBookValue() ? '৳' . number_format($item->currentBookValue(), 2) : 'N/A' }}</span>
                                     </div>
                                 </li>
                             </ul>
@@ -400,8 +405,8 @@
                                 </td>
                                 <td>{{ $move->fromUser->name ?? 'N/A' }}</td>
                                 <td>{{ $move->toUser->name ?? 'N/A' }}</td>
-                                <td>{{ $move->from_location ?? 'N/A' }}</td>
-                                <td>{{ $move->to_location ?? 'N/A' }}</td>
+                                <td>{!! $move->from_location ?? 'N/A' !!}</td>
+                                <td>{!! $move->to_location ?? 'N/A' !!}</td>
                                 <td>{{ $move->movedBy->name ?? 'N/A' }}</td>
                                 <td>
                                     @if($move->notes)
@@ -416,6 +421,58 @@
                     </table>
                 </div>
             @endif
+        </div>
+    </div>
+</div>
+
+<!-- Image Modal -->
+<div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="imageModalLabel">Item Image</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center position-relative">
+                <img id="modalImage" src="" alt="Item Image" class="img-fluid" style="max-height: 70vh; max-width: 100%; object-fit: contain;">
+                
+                <!-- Navigation arrows for multiple images -->
+                <div id="modalNavigation" style="display: none;">
+                    <button type="button" class="btn btn-primary position-absolute top-50 start-0 translate-middle-y" 
+                            onclick="previousImage()" style="left: 15px; z-index: 10; border-radius: 50%; width: 50px; height: 50px; box-shadow: 0 4px 8px rgba(0,0,0,0.3);">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <button type="button" class="btn btn-primary position-absolute top-50 end-0 translate-middle-y" 
+                            onclick="nextImage()" style="right: 15px; z-index: 10; border-radius: 50%; width: 50px; height: 50px; box-shadow: 0 4px 8px rgba(0,0,0,0.3);">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+                
+                <!-- Image counter -->
+                <div id="imageCounter" class="position-absolute" style="bottom: 10px; right: 10px; background: rgba(0,0,0,0.7); color: white; padding: 5px 10px; border-radius: 15px; font-size: 12px;">
+                    <span id="currentImageIndex">1</span> / <span id="totalImages">1</span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <div id="modalFooterNavigation" style="display: none;">
+                    <button type="button" class="btn btn-outline-primary" onclick="previousImage()">
+                        <i class="fas fa-chevron-left"></i> Previous
+                    </button>
+                </div>
+                <div class="ms-auto">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times"></i> Close
+                    </button>
+                    <button type="button" class="btn btn-primary" onclick="printImage()">
+                        <i class="fas fa-print"></i> Print Image
+                    </button>
+                </div>
+                <div id="modalFooterNext" style="display: none;">
+                    <button type="button" class="btn btn-outline-primary" onclick="nextImage()">
+                        Next <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -517,6 +574,152 @@
         link.href = canvas.toDataURL();
         link.click();
     }
+
+    // Image modal functionality
+    let currentImageIndex = 0;
+    let imageSources = [];
+    let itemName = '';
+
+    function openImageModal(imageSrc, itemNameParam, imageIndex = 0) {
+        itemName = itemNameParam;
+        currentImageIndex = imageIndex;
+        
+        // Store all image sources for navigation
+        @if($item->images && $item->images->count() > 0)
+            imageSources = [
+                @foreach($item->images as $index => $image)
+                    @if($image->image_path && file_exists(storage_path('app/public/' . $image->image_path)))
+                        '{{ asset('storage/' . $image->image_path) }}'{{ $index < $item->images->count() - 1 ? ',' : '' }}
+                    @endif
+                @endforeach
+            ];
+        @elseif($item->image && \App\Helpers\ImageHelper::imageExists($item->image))
+            imageSources = ['{{ \App\Helpers\ImageHelper::getOriginalUrl($item->image) }}'];
+        @else
+            imageSources = [];
+        @endif
+        
+        // Show/hide navigation based on number of images
+        const modalNavigation = document.getElementById('modalNavigation');
+        const imageCounter = document.getElementById('imageCounter');
+        const modalFooterNavigation = document.getElementById('modalFooterNavigation');
+        const modalFooterNext = document.getElementById('modalFooterNext');
+        
+        if (imageSources.length > 1) {
+            modalNavigation.style.display = 'block';
+            imageCounter.style.display = 'block';
+            modalFooterNavigation.style.display = 'block';
+            modalFooterNext.style.display = 'block';
+            document.getElementById('totalImages').textContent = imageSources.length;
+        } else {
+            modalNavigation.style.display = 'none';
+            imageCounter.style.display = 'none';
+            modalFooterNavigation.style.display = 'none';
+            modalFooterNext.style.display = 'none';
+        }
+        
+        // Set the current image
+        setModalImage(imageSrc);
+        updateImageCounter();
+    }
+
+    function setModalImage(imageSrc) {
+        document.getElementById('modalImage').src = imageSrc;
+        document.getElementById('imageModalLabel').textContent = itemName + ' - Image';
+    }
+
+    function updateImageCounter() {
+        document.getElementById('currentImageIndex').textContent = currentImageIndex + 1;
+    }
+
+    function previousImage() {
+        if (imageSources.length > 1) {
+            currentImageIndex = (currentImageIndex - 1 + imageSources.length) % imageSources.length;
+            setModalImage(imageSources[currentImageIndex]);
+            updateImageCounter();
+        }
+    }
+
+    function nextImage() {
+        if (imageSources.length > 1) {
+            currentImageIndex = (currentImageIndex + 1) % imageSources.length;
+            setModalImage(imageSources[currentImageIndex]);
+            updateImageCounter();
+        }
+    }
+
+    function printImage() {
+        const modalImage = document.getElementById('modalImage');
+        const printWindow = window.open('', '_blank');
+        
+        printWindow.document.write(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Print Image - ${document.getElementById('imageModalLabel').textContent}</title>
+                <style>
+                    body {
+                        margin: 0;
+                        padding: 20px;
+                        text-align: center;
+                        font-family: Arial, sans-serif;
+                    }
+                    img {
+                        max-width: 100%;
+                        max-height: 90vh;
+                        object-fit: contain;
+                        border: 1px solid #ddd;
+                        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+                    }
+                    .image-title {
+                        margin-bottom: 20px;
+                        font-size: 18px;
+                        font-weight: bold;
+                        color: #333;
+                    }
+                    @media print {
+                        body { margin: 0; padding: 10px; }
+                        .image-title { margin-bottom: 10px; }
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="image-title">${document.getElementById('imageModalLabel').textContent}</div>
+                <img src="${modalImage.src}" alt="${modalImage.alt}">
+            </body>
+            </html>
+        `);
+        
+        printWindow.document.close();
+        printWindow.focus();
+        
+        // Wait for image to load then print
+        printWindow.onload = function() {
+            setTimeout(() => {
+                printWindow.print();
+            }, 500);
+        };
+    }
+
+    // Keyboard navigation for image modal
+    document.addEventListener('keydown', function(event) {
+        const modal = document.getElementById('imageModal');
+        if (modal && modal.classList.contains('show') && imageSources.length > 1) {
+            if (event.key === 'ArrowLeft') {
+                event.preventDefault();
+                previousImage();
+            } else if (event.key === 'ArrowRight') {
+                event.preventDefault();
+                nextImage();
+            } else if (event.key === 'Escape') {
+                event.preventDefault();
+                const modalInstance = bootstrap.Modal.getInstance(modal);
+                if (modalInstance) {
+                    modalInstance.hide();
+                }
+            }
+        }
+    });
 
     // Generate barcode when page loads
     document.addEventListener('DOMContentLoaded', function() {

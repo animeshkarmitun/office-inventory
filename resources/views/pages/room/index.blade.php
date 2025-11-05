@@ -25,7 +25,6 @@
                                 <tr>
                                     <th>ID</th>
                                     <th>Floor</th>
-                                    <th>Room Number</th>
                                     <th>Name</th>
                                     <th>Status</th>
                                     <th>Description</th>
@@ -42,7 +41,6 @@
                                             {{ $room->floor->name }}
                                         </a>
                                     </td>
-                                    <td><strong>{{ $room->room_number }}</strong></td>
                                     <td>{{ $room->name }}</td>
                                     <td>
                                         @if($room->status === 'active')

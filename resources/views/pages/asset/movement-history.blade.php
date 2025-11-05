@@ -39,8 +39,8 @@
                 </td>
                 <td>{{ $movement->fromUser->name ?? 'N/A' }}</td>
                 <td>{{ $movement->toUser->name ?? 'N/A' }}</td>
-                <td>{{ $movement->from_location ?? 'N/A' }}</td>
-                <td>{{ $movement->to_location ?? 'N/A' }}</td>
+                <td>{!! $movement->from_location ?? 'N/A' !!}</td>
+                <td>{!! $movement->to_location ?? 'N/A' !!}</td>
                 <td>{{ $movement->notes ?? 'N/A' }}</td>
             </tr>
             @empty

@@ -145,6 +145,13 @@ class ItemController extends Controller
             $fields['purchase_id'] = $request->purchase_id;
         }
 
+        // Auto-approve items created by super admin
+        if (Auth::user()->role === 'super_admin') {
+            $fields['is_approved'] = true;
+            $fields['approved_by'] = Auth::id();
+            $fields['approved_at'] = now();
+        }
+
         // Calculate depreciation cost automatically if value and depreciation rate are provided
         if ($request->filled('value') && $request->filled('depreciation_rate')) {
             $fields['depreciation_cost'] = ($request->value * $request->depreciation_rate) / 100;
@@ -176,6 +183,7 @@ class ItemController extends Controller
                 $fields['quantity'] = $request->quantity;
                 $fields['serial_number'] = Item::generateSerialNumber('BULK');
                 $fields['asset_tag'] = Item::generateAssetTag('BULK');
+                $fields['barcode'] = $fields['asset_tag']; // Auto-generate barcode from asset tag
                 $item = Item::create($fields);
                 $itemsCreated = 1;
                 $totalQuantity = $request->quantity;
@@ -202,6 +210,7 @@ class ItemController extends Controller
                     $fields['quantity'] = 1;
                     $fields['serial_number'] = Item::generateSerialNumber(($i+1));
                     $fields['asset_tag'] = Item::generateAssetTag(($i+1));
+                    $fields['barcode'] = $fields['asset_tag']; // Auto-generate barcode from asset tag
                     $item = Item::create($fields);
                     
                     // Save images for this item
@@ -233,9 +242,17 @@ class ItemController extends Controller
         }
         
         if ($request->tracking_mode === 'bulk') {
-            $message = "Bulk item '{$request->name}' created successfully with quantity {$totalQuantity}{$purchaseInfo}. Waiting for admin approval.";
+            if (Auth::user()->role === 'super_admin') {
+                $message = "Bulk item '{$request->name}' created and approved successfully with quantity {$totalQuantity}{$purchaseInfo}.";
+            } else {
+                $message = "Bulk item '{$request->name}' created successfully with quantity {$totalQuantity}{$purchaseInfo}. Waiting for admin approval.";
+            }
         } else {
-            $message = "{$itemsCreated} individual item(s) of '{$request->name}' created successfully{$purchaseInfo}. Waiting for admin approval.";
+            if (Auth::user()->role === 'super_admin') {
+                $message = "{$itemsCreated} individual item(s) of '{$request->name}' created and approved successfully{$purchaseInfo}.";
+            } else {
+                $message = "{$itemsCreated} individual item(s) of '{$request->name}' created successfully{$purchaseInfo}. Waiting for admin approval.";
+            }
         }
         
         
@@ -506,6 +523,16 @@ class ItemController extends Controller
 
         $pdf = \PDF::loadView('pages.item.history-pdf', compact('item', 'movements'));
         $pdf->setPaper('A4', 'portrait');
+        $pdf->setOptions([
+            'isHtml5ParserEnabled' => true,
+            'isPhpEnabled' => true,
+            'isRemoteEnabled' => true,
+            'defaultFont' => 'DejaVu Sans',
+            'fontDir' => storage_path('fonts/'),
+            'fontCache' => storage_path('fonts/'),
+            'isUnicode' => true,
+            'debugKeepTemp' => true,
+        ]);
         
         $filename = 'item_history_' . $item->name . '_' . date('Y-m-d') . '.pdf';
         return $pdf->download($filename);

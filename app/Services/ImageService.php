@@ -108,13 +108,30 @@ class ImageService
         $maxHeight = $options['max_height'] ?? $this->maxHeight;
 
         $img = $this->manager->read($image->getPathname());
+        
+        $currentWidth = $img->width();
+        $currentHeight = $img->height();
 
-        // Resize if image is too large
-        if ($img->width() > $maxWidth || $img->height() > $maxHeight) {
-            $img = $img->resize($maxWidth, $maxHeight, function ($constraint) {
-                $constraint->aspectRatio();
-                $constraint->upsize();
-            });
+        // Validate image has proper dimensions
+        if ($currentWidth < 1 || $currentHeight < 1) {
+            throw new Exception('Invalid image dimensions');
+        }
+
+        // Resize if image is too large while maintaining aspect ratio
+        if ($currentWidth > $maxWidth || $currentHeight > $maxHeight) {
+            // Calculate the scaling factor to fit within max dimensions
+            $widthRatio = $maxWidth / $currentWidth;
+            $heightRatio = $maxHeight / $currentHeight;
+            
+            // Use the smaller ratio to ensure image fits within both dimensions
+            $scale = min($widthRatio, $heightRatio);
+            
+            // Calculate new dimensions and ensure they're at least 1 pixel
+            $newWidth = max(1, (int)round($currentWidth * $scale));
+            $newHeight = max(1, (int)round($currentHeight * $scale));
+            
+            // Scale down maintaining aspect ratio using cover method
+            $img->scaleDown($newWidth, $newHeight);
         }
 
         // Convert to WebP
@@ -130,12 +147,28 @@ class ImageService
     protected function createThumbnail(UploadedFile $image)
     {
         $img = $this->manager->read($image->getPathname());
+        
+        $currentWidth = $img->width();
+        $currentHeight = $img->height();
 
-        // Resize to thumbnail size
-        $img = $img->resize($this->thumbnailWidth, $this->thumbnailHeight, function ($constraint) {
-            $constraint->aspectRatio();
-            $constraint->upsize();
-        });
+        // Validate image has proper dimensions
+        if ($currentWidth < 1 || $currentHeight < 1) {
+            throw new Exception('Invalid image dimensions');
+        }
+
+        // Calculate scaling to fit thumbnail dimensions while maintaining aspect ratio
+        $widthRatio = $this->thumbnailWidth / $currentWidth;
+        $heightRatio = $this->thumbnailHeight / $currentHeight;
+        
+        // Use the smaller ratio to ensure thumbnail fits within max dimensions
+        $scale = min($widthRatio, $heightRatio);
+        
+        // Calculate new dimensions and ensure they're at least 1 pixel
+        $newWidth = max(1, (int)round($currentWidth * $scale));
+        $newHeight = max(1, (int)round($currentHeight * $scale));
+        
+        // Scale down to thumbnail size maintaining aspect ratio
+        $img->scaleDown($newWidth, $newHeight);
 
         // Convert to WebP with lower quality for thumbnails
         return $img->toWebp(70);

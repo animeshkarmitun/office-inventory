@@ -5,7 +5,7 @@
     <title>Item History - {{ $item->name }}</title>
     <style>
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'DejaVu Sans', Arial, sans-serif;
             font-size: 12px;
             line-height: 1.4;
             color: #333;
@@ -179,7 +179,7 @@
             </div>
             <div class="info-row">
                 <div class="info-label">Value:</div>
-                <div class="info-value">{{ $item->value ? '$' . number_format($item->value, 2) : 'N/A' }}</div>
+                <div class="info-value">{{ $item->value ? 'BDT ' . number_format($item->value, 2) : 'N/A' }}</div>
             </div>
             <div class="info-row">
                 <div class="info-label">Quantity:</div>
@@ -238,11 +238,11 @@
             </div>
             <div class="info-row">
                 <div class="info-label">Depreciation Cost:</div>
-                <div class="info-value">{{ $item->depreciation_cost ? '$' . number_format($item->depreciation_cost, 2) : 'N/A' }}</div>
+                <div class="info-value">{{ $item->depreciation_cost ? 'BDT ' . number_format($item->depreciation_cost, 2) : 'N/A' }}</div>
             </div>
             <div class="info-row">
                 <div class="info-label">Current Book Value:</div>
-                <div class="info-value">{{ $item->currentBookValue() ? '$' . number_format($item->currentBookValue(), 2) : 'N/A' }}</div>
+                <div class="info-value">{{ $item->currentBookValue() ? 'BDT ' . number_format($item->currentBookValue(), 2) : 'N/A' }}</div>
             </div>
         </div>
     </div>
@@ -300,8 +300,8 @@
                             <td>{{ $move->created_at->format('M d, Y H:i') }}</td>
                             <td>{{ $move->fromUser->name ?? 'N/A' }}</td>
                             <td>{{ $move->toUser->name ?? 'N/A' }}</td>
-                            <td>{{ $move->from_location ?? 'N/A' }}</td>
-                            <td>{{ $move->to_location ?? 'N/A' }}</td>
+                            <td>{!! $move->from_location ?? 'N/A' !!}</td>
+                            <td>{!! $move->to_location ?? 'N/A' !!}</td>
                             <td>{{ $move->movedBy->name ?? 'N/A' }}</td>
                             <td>{{ $move->notes ?? '-' }}</td>
                         </tr>

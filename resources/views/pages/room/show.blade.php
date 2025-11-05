@@ -22,12 +22,8 @@
                             <h5>Room Information</h5>
                             <table class="table table-borderless">
                                 <tr>
-                                    <th width="150">Room Number:</th>
-                                    <td><strong>{{ $room->room_number }}</strong></td>
-                                </tr>
-                                <tr>
-                                    <th>Name:</th>
-                                    <td>{{ $room->name }}</td>
+                                    <th width="150">Name:</th>
+                                    <td><strong>{{ $room->name }}</strong></td>
                                 </tr>
                                 <tr>
                                     <th>Floor:</th>

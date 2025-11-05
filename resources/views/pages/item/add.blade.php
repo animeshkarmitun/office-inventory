@@ -81,25 +81,11 @@
                     </div>
                     <div class="mb-3">
                         <label for="barcode" class="form-label">Barcode</label>
-                        <div class="input-group">
-                            <input type="text" name="barcode" class="form-control @error('barcode') is-invalid @enderror" id="barcode" value="{{ old('barcode') }}" readonly placeholder="Will be auto-generated from asset tag">
-                            <button type="button" class="btn btn-outline-secondary" id="generateBarcodeBtn" title="Generate Barcode">
-                                <i class="fas fa-barcode"></i>
-                            </button>
-                            <button type="button" class="btn btn-outline-primary" id="downloadBarcodeBtn" title="Download Barcode" style="display: none;">
-                                <i class="fas fa-download"></i>
-                            </button>
-                        </div>
+                        <input type="text" name="barcode" class="form-control @error('barcode') is-invalid @enderror" id="barcode" value="{{ old('barcode') }}" readonly placeholder="Will be auto-generated from asset tag">
                         <small class="form-text text-muted">Barcode will be automatically generated from the asset tag when created.</small>
                         @error('barcode')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
-                    </div>
-                    <div class="mb-3" id="barcodePreview" style="display: none;">
-                        <label class="form-label">Barcode Preview</label>
-                        <div class="text-center">
-                            <canvas id="barcodeCanvas" style="max-width: 100%; height: auto;"></canvas>
-                        </div>
                     </div>
                     <div class="mb-3">
                         <label for="rfid_tag" class="form-label">RFID Tag</label>
@@ -290,7 +276,7 @@
                                 <option value="">-- Select Floor First --</option>
                             @foreach($rooms as $room)
                                 <option value="{{ $room->name }}" {{ old('room_number') == $room->name ? 'selected' : '' }}>
-                                    {{ $room->name }} ({{ $room->room_number }}) - {{ $room->floor->name }}
+                                    {{ $room->name }} - {{ $room->floor->name }}
                                 </option>
                             @endforeach
                         </select>
@@ -989,7 +975,7 @@
             const depreciationNote = document.getElementById('depreciation-note');
             if (depreciationNote) {
                 if (value > 0 && rate > 0) {
-                    depreciationNote.textContent = `Depreciation cost will be automatically calculated: $${depreciationCost.toFixed(2)}`;
+                    depreciationNote.textContent = `Depreciation cost will be automatically calculated: ৳${depreciationCost.toFixed(2)}`;
                     depreciationNote.style.display = 'block';
                 } else {
                     depreciationNote.style.display = 'none';
@@ -1009,9 +995,8 @@
             @foreach($rooms as $room)
             {
                 id: {{ $room->id }},
-                name: "{{ $room->name }}",
-                room_number: "{{ $room->room_number }}",
-                floor_name: "{{ $room->floor->name }}",
+                name: {!! json_encode($room->name) !!},
+                floor_name: {!! json_encode($room->floor->name) !!},
                 floor_id: {{ $room->floor_id }}
             }@if(!$loop->last),@endif
             @endforeach
@@ -1027,7 +1012,7 @@
                 allRooms.forEach(room => {
                     const option = document.createElement('option');
                     option.value = room.name;
-                    option.textContent = `${room.name} (${room.room_number}) - ${room.floor_name}`;
+                    option.textContent = `${room.name} - ${room.floor_name}`;
                     roomSelect.appendChild(option);
                 });
                 return;
@@ -1040,7 +1025,7 @@
             filteredRooms.forEach(room => {
                 const option = document.createElement('option');
                 option.value = room.name;
-                option.textContent = `${room.name} (${room.room_number}) - ${room.floor_name}`;
+                option.textContent = `${room.name} - ${room.floor_name}`;
                 roomSelect.appendChild(option);
             });
         }
@@ -1358,7 +1343,6 @@
                     allRooms.push({
                         id: data.room.id,
                         name: data.room.name,
-                        room_number: data.room.room_number,
                         floor_name: data.room.floor_name,
                         floor_id: data.room.floor_id
                     });
@@ -1921,64 +1905,6 @@
             }
         });
 
-        // Barcode functionality
-        const barcodeInput = document.getElementById('barcode');
-        const generateBarcodeBtn = document.getElementById('generateBarcodeBtn');
-        const downloadBarcodeBtn = document.getElementById('downloadBarcodeBtn');
-        const barcodePreview = document.getElementById('barcodePreview');
-        const barcodeCanvas = document.getElementById('barcodeCanvas');
-        const assetTagInput = document.getElementById('asset_tag');
-
-        // Generate barcode from asset tag
-        function generateBarcode() {
-            const assetTag = assetTagInput.value.trim();
-            if (!assetTag) {
-                alert('Please enter an asset tag first');
-                return;
-            }
-
-            // Set barcode value to asset tag
-            barcodeInput.value = assetTag;
-
-            // Generate barcode visual
-            try {
-                JsBarcode(barcodeCanvas, assetTag, {
-                    format: "CODE128",
-                    width: 2,
-                    height: 100,
-                    displayValue: true,
-                    fontSize: 16,
-                    margin: 10
-                });
-                
-                // Show preview and download button
-                barcodePreview.style.display = 'block';
-                downloadBarcodeBtn.style.display = 'inline-block';
-            } catch (error) {
-                console.error('Error generating barcode:', error);
-                alert('Error generating barcode. Please try again.');
-            }
-        }
-
-        // Download barcode as PNG
-        function downloadBarcode() {
-            const canvas = barcodeCanvas;
-            const link = document.createElement('a');
-            link.download = `barcode_${barcodeInput.value}.png`;
-            link.href = canvas.toDataURL();
-            link.click();
-        }
-
-        // Event listeners
-        generateBarcodeBtn.addEventListener('click', generateBarcode);
-        downloadBarcodeBtn.addEventListener('click', downloadBarcode);
-
-        // Auto-generate barcode when asset tag changes (if barcode is empty)
-        assetTagInput.addEventListener('input', function() {
-            if (!barcodeInput.value && this.value.trim()) {
-                generateBarcode();
-            }
-        });
 
     });
 </script>

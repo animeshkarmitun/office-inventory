@@ -243,10 +243,10 @@
                         <label for="room_number" class="form-label">Room Number <span class="text-danger">*</span></label>
                         <div class="input-group">
                             <select name="room_number" class="form-select @error('room_number') is-invalid @enderror" id="room_number" required>
-                                <option value="">-- Select Room --</option>
+                                <option value="">-- Select Floor First --</option>
                                 @foreach($rooms as $room)
                                     <option value="{{ $room->name }}" {{ old('room_number', $item->room_number) == $room->name ? 'selected' : '' }}>
-                                        {{ $room->name }} ({{ $room->room_number }}) - {{ $room->floor->name }}
+                                        {{ $room->name }} - {{ $room->floor->name }}
                                     </option>
                                 @endforeach
                             </select>
@@ -445,6 +445,410 @@
     </div>
 </div>
 
+<!-- Add User Modal -->
+<div class="modal fade" id="addUserModal" tabindex="-1" aria-labelledby="addUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-primary text-white border-0">
+                <h5 class="modal-title fw-bold text-white" id="addUserModalLabel">
+                    <i class="fas fa-user-plus me-2"></i>
+                    Add New User
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="addUserForm" onsubmit="return false;">
+                <div class="modal-body">
+                    <div id="userModalAlert" class="alert" style="display: none;"></div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="modal_user_name" class="form-label">Full Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="modal_user_name" name="name" required>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="modal_user_email" class="form-label">Email Address</label>
+                                <input type="email" class="form-control" id="modal_user_email" name="email" placeholder="Leave empty to auto-generate">
+                                <small class="form-text text-muted">If left empty, email will be auto-generated from name</small>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="modal_user_designation_id" class="form-label">Designation <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <select class="form-select" id="modal_user_designation_id" name="designation_id" required>
+                                <option value="">-- Select Designation --</option>
+                                @foreach(\App\Models\Designation::with('department')->get() as $designation)
+                                    <option value="{{ $designation->id }}">{{ $designation->name }} ({{ $designation->department->name }})</option>
+                                @endforeach
+                            </select>
+                            <button type="button" class="btn btn-outline-primary" id="createDesignationBtn" data-bs-toggle="modal" data-bs-target="#createDesignationModal">
+                                <i class="fas fa-plus"></i> Create New
+                            </button>
+                        </div>
+                        <div class="invalid-feedback"></div>
+                    </div>
+                    
+                    <!-- Hidden fields for auto-generated values -->
+                    <input type="hidden" id="modal_user_password" name="password" value="">
+                    <input type="hidden" id="modal_user_role" name="role" value="employee">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="saveUserBtn">
+                        <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                        <span class="btn-text">Add User</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Create Designation Modal -->
+<div class="modal fade" id="createDesignationModal" tabindex="-1" aria-labelledby="createDesignationModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-success text-white border-0">
+                <h5 class="modal-title fw-bold text-white" id="createDesignationModalLabel">
+                    <i class="fas fa-plus me-2"></i>
+                    Create New Designation
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="createDesignationForm" onsubmit="return false;">
+                <div class="modal-body">
+                    <div id="designationModalAlert" class="alert" style="display: none;"></div>
+                    
+                    <div class="mb-3">
+                        <label for="new_designation_name" class="form-label">Designation Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="new_designation_name" name="name" required>
+                        <div class="invalid-feedback"></div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="new_designation_department_input" class="form-label">Department <span class="text-danger">*</span></label>
+                        <input type="text" 
+                               class="form-control" 
+                               id="new_designation_department_input" 
+                               placeholder="Type to search or create new department"
+                               autocomplete="off"
+                               required>
+                        <input type="hidden" id="new_designation_department_id" name="department_id">
+                        
+                        <!-- Department dropdown -->
+                        <div id="departmentDropdown" class="dropdown-menu" style="display: none; width: 100%; max-height: 200px; overflow-y: auto;">
+                            @foreach(\App\Models\Department::all() as $dept)
+                                <a href="#" class="dropdown-item" data-id="{{ $dept->id }}" data-name="{{ $dept->name }}">
+                                    {{ $dept->name }}
+                                </a>
+                            @endforeach
+                            <div class="dropdown-divider"></div>
+                            <a href="#" class="dropdown-item text-primary" id="createNewDepartment">
+                                <i class="fas fa-plus me-2"></i>Create new department
+                            </a>
+                        </div>
+                        <small class="form-text text-muted">Select from existing or type a new department name</small>
+                        <div class="invalid-feedback"></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-success" id="saveDesignationBtn">
+                        <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                        <span class="btn-text">Create Designation</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Add Supplier Modal -->
+<div class="modal fade" id="addSupplierModal" tabindex="-1" aria-labelledby="addSupplierModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-success text-white border-0">
+                <h5 class="modal-title fw-bold text-white" id="addSupplierModalLabel">
+                    <i class="fas fa-plus-circle me-2"></i>
+                    Add New Supplier
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="addSupplierForm" onsubmit="return false;">
+                <div class="modal-body">
+                    <div id="supplierModalAlert" class="alert" style="display: none;"></div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="supplier_name" class="form-label">Supplier Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="supplier_name" name="name" required>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="supplier_contact_person" class="form-label">Contact Person</label>
+                                <input type="text" class="form-control" id="supplier_contact_person" name="contact_person">
+                                <div class="invalid-feedback"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="supplier_email" class="form-label">Email</label>
+                                <input type="email" class="form-control" id="supplier_email" name="email">
+                                <div class="invalid-feedback"></div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="supplier_phone" class="form-label">Phone</label>
+                                <input type="text" class="form-control" id="supplier_phone" name="phone">
+                                <div class="invalid-feedback"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="supplier_address" class="form-label">Address</label>
+                        <textarea class="form-control" id="supplier_address" name="address" rows="3"></textarea>
+                        <div class="invalid-feedback"></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-success" id="saveSupplierBtn">
+                        <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                        <span class="btn-text">Add Supplier</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Add Floor Modal -->
+<div class="modal fade" id="addFloorModal" tabindex="-1" aria-labelledby="addFloorModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-info text-white border-0">
+                <h5 class="modal-title fw-bold text-white" id="addFloorModalLabel">
+                    <i class="fas fa-building me-2"></i>
+                    Add New Floor
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="addFloorForm" onsubmit="return false;">
+                <div class="modal-body">
+                    <div id="floorModalAlert" class="alert" style="display: none;"></div>
+                    
+                    <div class="mb-3">
+                        <label for="floor_name" class="form-label">Floor Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="floor_name" name="name" required>
+                        <div class="invalid-feedback"></div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="floor_serial_number" class="form-label">Serial Number</label>
+                        <input type="text" class="form-control" id="floor_serial_number" name="serial_number">
+                        <div class="invalid-feedback"></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-info" id="saveFloorBtn">
+                        <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                        <span class="btn-text">Add Floor</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Add Room Modal -->
+<div class="modal fade" id="addRoomModal" tabindex="-1" aria-labelledby="addRoomModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-warning text-white border-0">
+                <h5 class="modal-title fw-bold text-white" id="addRoomModalLabel">
+                    <i class="fas fa-door-open me-2"></i>
+                    Add New Room
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="addRoomForm" onsubmit="return false;">
+                <div class="modal-body">
+                    <div id="roomModalAlert" class="alert" style="display: none;"></div>
+                    
+                    <div class="mb-3">
+                        <label for="room_name" class="form-label">Room Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="room_name" name="name" required>
+                        <div class="invalid-feedback"></div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="room_number" class="form-label">Room Number</label>
+                        <input type="text" class="form-control" id="room_number" name="room_number">
+                        <div class="invalid-feedback"></div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="room_floor_id" class="form-label">Floor <span class="text-danger">*</span></label>
+                        <select class="form-select" id="room_floor_id" name="floor_id" required>
+                            <option value="">-- Select Floor --</option>
+                            @foreach($floors as $floor)
+                                <option value="{{ $floor->id }}">{{ $floor->name }} ({{ $floor->serial_number }})</option>
+                            @endforeach
+                        </select>
+                        <div class="invalid-feedback"></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-warning" id="saveRoomBtn">
+                        <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                        <span class="btn-text">Add Room</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Add User Modal -->
+<div class="modal fade" id="addUserModal" tabindex="-1" aria-labelledby="addUserModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-primary text-white border-0">
+                <h5 class="modal-title fw-bold text-white" id="addUserModalLabel">
+                    <i class="fas fa-user-plus me-2"></i>
+                    Add New User
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="addUserForm" onsubmit="return false;">
+                <div class="modal-body">
+                    <div id="userModalAlert" class="alert" style="display: none;"></div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="modal_user_name" class="form-label">Full Name <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="modal_user_name" name="name" required>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="modal_user_email" class="form-label">Email Address</label>
+                                <input type="email" class="form-control" id="modal_user_email" name="email" placeholder="Leave empty to auto-generate">
+                                <small class="form-text text-muted">If left empty, email will be auto-generated from name</small>
+                                <div class="invalid-feedback"></div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="modal_user_designation_id" class="form-label">Designation <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <select class="form-select" id="modal_user_designation_id" name="designation_id" required>
+                                <option value="">-- Select Designation --</option>
+                                @foreach(\App\Models\Designation::with('department')->get() as $designation)
+                                    <option value="{{ $designation->id }}">{{ $designation->name }} ({{ $designation->department->name }})</option>
+                                @endforeach
+                            </select>
+                            <button type="button" class="btn btn-outline-primary" id="createDesignationBtn" data-bs-toggle="modal" data-bs-target="#createDesignationModal">
+                                <i class="fas fa-plus"></i> Create New
+                            </button>
+                        </div>
+                        <div class="invalid-feedback"></div>
+                    </div>
+                    
+                    <!-- Hidden fields for auto-generated values -->
+                    <input type="hidden" id="modal_user_password" name="password" value="">
+                    <input type="hidden" id="modal_user_role" name="role" value="employee">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="saveUserBtn">
+                        <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                        <span class="btn-text">Add User</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Create Designation Modal -->
+<div class="modal fade" id="createDesignationModal" tabindex="-1" aria-labelledby="createDesignationModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-success text-white border-0">
+                <h5 class="modal-title fw-bold text-white" id="createDesignationModalLabel">
+                    <i class="fas fa-plus me-2"></i>
+                    Create New Designation
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="createDesignationForm" onsubmit="return false;">
+                <div class="modal-body">
+                    <div id="designationModalAlert" class="alert" style="display: none;"></div>
+                    
+                    <div class="mb-3">
+                        <label for="new_designation_name" class="form-label">Designation Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="new_designation_name" name="name" required>
+                        <div class="invalid-feedback"></div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="new_designation_department_input" class="form-label">Department <span class="text-danger">*</span></label>
+                        <input type="text" 
+                               class="form-control" 
+                               id="new_designation_department_input" 
+                               placeholder="Type to search or create new department"
+                               autocomplete="off"
+                               required>
+                        <input type="hidden" id="new_designation_department_id" name="department_id">
+                        
+                        <!-- Department dropdown -->
+                        <div id="departmentDropdown" class="dropdown-menu" style="display: none; width: 100%; max-height: 200px; overflow-y: auto;">
+                            @foreach(\App\Models\Department::all() as $dept)
+                                <a href="#" class="dropdown-item" data-id="{{ $dept->id }}" data-name="{{ $dept->name }}">
+                                    {{ $dept->name }}
+                                </a>
+                            @endforeach
+                            <div class="dropdown-divider"></div>
+                            <a href="#" class="dropdown-item text-primary" id="createNewDepartment">
+                                <i class="fas fa-plus me-2"></i>Create new department
+                            </a>
+                        </div>
+                        <small class="form-text text-muted">Select from existing or type a new department name</small>
+                        <div class="invalid-feedback"></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-success" id="saveDesignationBtn">
+                        <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                        <span class="btn-text">Create Designation</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 @push('styles')
 <style>
     .card {
@@ -536,7 +940,7 @@
             const depreciationNote = document.getElementById('depreciation-note');
             if (depreciationNote) {
                 if (value > 0 && rate > 0) {
-                    depreciationNote.textContent = `Depreciation cost will be automatically calculated: $${depreciationCost.toFixed(2)}`;
+                    depreciationNote.textContent = `Depreciation cost will be automatically calculated: ৳${depreciationCost.toFixed(2)}`;
                     depreciationNote.style.display = 'block';
                 } else {
                     depreciationNote.style.display = 'none';
@@ -558,23 +962,25 @@
         const floorSelect = document.getElementById('floor_level');
         const roomSelect = document.getElementById('room_number');
         
+        // Store the initial room value before any modifications
+        const initialRoomValue = roomSelect.value;
+        
         // Store all rooms data for filtering
         const allRooms = [
             @foreach($rooms as $room)
             {
                 id: {{ $room->id }},
-                name: "{{ $room->name }}",
-                room_number: "{{ $room->room_number }}",
-                floor_name: "{{ $room->floor->name }}",
+                name: {!! json_encode($room->name) !!},
+                floor_name: {!! json_encode($room->floor->name) !!},
                 floor_id: {{ $room->floor_id }}
             }@if(!$loop->last),@endif
             @endforeach
         ];
 
         // Function to filter rooms based on selected floor
-        function filterRoomsByFloor(selectedFloorName) {
-            // Get current room selection before clearing
-            const currentRoomValue = roomSelect.value;
+        function filterRoomsByFloor(selectedFloorName, preserveRoomValue = null) {
+            // Use the preserved value if provided, otherwise get current selection
+            const currentRoomValue = preserveRoomValue !== null ? preserveRoomValue : roomSelect.value;
             
             // Clear current room options except the first one
             roomSelect.innerHTML = '<option value="">-- Select Room --</option>';
@@ -584,7 +990,7 @@
                 allRooms.forEach(room => {
                     const option = document.createElement('option');
                     option.value = room.name;
-                    option.textContent = `${room.name} (${room.room_number}) - ${room.floor_name}`;
+                    option.textContent = `${room.name} - ${room.floor_name}`;
                     if (room.name === currentRoomValue) {
                         option.selected = true;
                     }
@@ -600,7 +1006,7 @@
             filteredRooms.forEach(room => {
                 const option = document.createElement('option');
                 option.value = room.name;
-                option.textContent = `${room.name} (${room.room_number}) - ${room.floor_name}`;
+                option.textContent = `${room.name} - ${room.floor_name}`;
                 if (room.name === currentRoomValue) {
                     option.selected = true;
                 }
@@ -616,15 +1022,15 @@
             });
         }
 
-        // Initialize room dropdown based on current floor selection
+        // Initialize room dropdown on page load
+        // If there's a current floor selection, filter rooms accordingly and preserve the selected room
         const currentFloor = floorSelect.value;
-        const currentRoom = roomSelect.value;
-        
         if (currentFloor) {
-            filterRoomsByFloor(currentFloor);
-        } else if (currentRoom) {
-            // If no floor is selected but room is, show all rooms and select current room
-            filterRoomsByFloor(null);
+            // Pass the initial room value to preserve the selection
+            filterRoomsByFloor(currentFloor, initialRoomValue);
+        } else if (initialRoomValue) {
+            // If no floor is selected but there's a room value, show all rooms
+            filterRoomsByFloor('', initialRoomValue);
         }
 
         // Image removal functionality
@@ -847,11 +1253,19 @@
         }
     });
 
+
     // User Modal functionality
     const addUserForm = document.getElementById('addUserForm');
     const userModal = document.getElementById('addUserModal');
     const saveUserBtn = document.getElementById('saveUserBtn');
     const userModalAlert = document.getElementById('userModalAlert');
+    
+    console.log('User modal elements:', {
+        addUserForm: !!addUserForm,
+        userModal: !!userModal,
+        saveUserBtn: !!saveUserBtn,
+        userModalAlert: !!userModalAlert
+    });
     
     // Get all user select elements
     const purchasedBySelect = document.getElementById('purchased_by');
@@ -873,19 +1287,26 @@
     });
 
     // Reset user modal form when modal is closed
-    userModal.addEventListener('hidden.bs.modal', function() {
-        addUserForm.reset();
-        addUserForm.querySelectorAll('.is-invalid').forEach(field => {
-            field.classList.remove('is-invalid');
+    if (userModal) {
+        userModal.addEventListener('hidden.bs.modal', function() {
+        if (addUserForm) {
+            addUserForm.reset();
+            addUserForm.querySelectorAll('.is-invalid').forEach(field => {
+                field.classList.remove('is-invalid');
+            });
+            addUserForm.querySelectorAll('.invalid-feedback').forEach(feedback => {
+                feedback.textContent = '';
+            });
+        }
+        if (userModalAlert) {
+            userModalAlert.style.display = 'none';
+        }
         });
-        addUserForm.querySelectorAll('.invalid-feedback').forEach(feedback => {
-            feedback.textContent = '';
-        });
-        userModalAlert.style.display = 'none';
-    });
+    }
 
     // Auto-generate password and set role when modal is shown
-    userModal.addEventListener('show.bs.modal', function() {
+    if (userModal) {
+        userModal.addEventListener('show.bs.modal', function() {
         // Generate a random password
         const password = generateRandomPassword();
         const passwordField = document.getElementById('modal_user_password');
@@ -898,7 +1319,8 @@
         if (roleField) {
             roleField.value = 'employee';
         }
-    });
+        });
+    }
 
     // Function to generate random password
     function generateRandomPassword() {
@@ -912,25 +1334,42 @@
 
     // Handle user form submission
     function handleUserSubmit() {
+        console.log('handleUserSubmit called');
+        if (!saveUserBtn) {
+            console.error('saveUserBtn not found');
+            return;
+        }
+        console.log('saveUserBtn found, proceeding with submission');
+        
         // Show loading state
         const spinner = saveUserBtn.querySelector('.spinner-border');
         const btnText = saveUserBtn.querySelector('.btn-text');
-        spinner.classList.remove('d-none');
-        btnText.textContent = 'Adding...';
+        if (spinner) spinner.classList.remove('d-none');
+        if (btnText) btnText.textContent = 'Adding...';
         saveUserBtn.disabled = true;
 
         // Clear previous errors
-        addUserForm.querySelectorAll('.is-invalid').forEach(field => {
-            field.classList.remove('is-invalid');
-        });
-        addUserForm.querySelectorAll('.invalid-feedback').forEach(feedback => {
-            feedback.textContent = '';
-        });
-        userModalAlert.style.display = 'none';
+        if (addUserForm) {
+            addUserForm.querySelectorAll('.is-invalid').forEach(field => {
+                field.classList.remove('is-invalid');
+            });
+            addUserForm.querySelectorAll('.invalid-feedback').forEach(feedback => {
+                feedback.textContent = '';
+            });
+        }
+        if (userModalAlert) {
+            userModalAlert.style.display = 'none';
+        }
 
         // Prepare form data
+        if (!addUserForm) {
+            console.error('addUserForm not found');
+            return;
+        }
+        console.log('addUserForm found, preparing form data');
         const formData = new FormData(addUserForm);
         formData.append('_token', document.querySelector('meta[name="csrf-token"]').getAttribute('content'));
+        console.log('Form data prepared, submitting to:', '{{ route("user-management.storeAjax") }}');
 
         // Submit via AJAX
         fetch('{{ route("user-management.storeAjax") }}', {
@@ -941,8 +1380,12 @@
                 'Accept': 'application/json'
             }
         })
-        .then(response => response.json())
+        .then(response => {
+            console.log('Response received:', response.status);
+            return response.json();
+        })
         .then(data => {
+            console.log('Response data:', data);
             if (data.success) {
                 // Add new user to all user dropdowns
                 const newOption = document.createElement('option');
@@ -961,9 +1404,11 @@
                 }
                 
                 // Show success message
-                userModalAlert.className = 'alert alert-success';
-                userModalAlert.textContent = 'User added successfully!';
-                userModalAlert.style.display = 'block';
+                if (userModalAlert) {
+                    userModalAlert.className = 'alert alert-success';
+                    userModalAlert.textContent = 'User added successfully!';
+                    userModalAlert.style.display = 'block';
+                }
                 
                 // Close modal after a short delay
                 setTimeout(() => {
@@ -972,7 +1417,7 @@
                 }, 1500);
             } else {
                 // Handle validation errors
-                if (data.errors) {
+                if (data.errors && addUserForm) {
                     Object.keys(data.errors).forEach(field => {
                         const input = addUserForm.querySelector(`[name="${field}"]`);
                         if (input) {
@@ -985,22 +1430,26 @@
                     });
                 } else {
                     // Show general error
-                    userModalAlert.className = 'alert alert-danger';
-                    userModalAlert.textContent = data.message || 'An error occurred while adding the user.';
-                    userModalAlert.style.display = 'block';
+                    if (userModalAlert) {
+                        userModalAlert.className = 'alert alert-danger';
+                        userModalAlert.textContent = data.message || 'An error occurred while adding the user.';
+                        userModalAlert.style.display = 'block';
+                    }
                 }
             }
         })
         .catch(error => {
-            userModalAlert.className = 'alert alert-danger';
-            userModalAlert.textContent = 'An error occurred while adding the user: ' + error.message;
-            userModalAlert.style.display = 'block';
+            if (userModalAlert) {
+                userModalAlert.className = 'alert alert-danger';
+                userModalAlert.textContent = 'An error occurred while adding the user: ' + error.message;
+                userModalAlert.style.display = 'block';
+            }
         })
         .finally(() => {
             // Reset loading state
-            spinner.classList.add('d-none');
-            btnText.textContent = 'Add User';
-            saveUserBtn.disabled = false;
+            if (spinner) spinner.classList.add('d-none');
+            if (btnText) btnText.textContent = 'Add User';
+            if (saveUserBtn) saveUserBtn.disabled = false;
         });
     }
 
@@ -1018,8 +1467,13 @@
         saveUserBtn.addEventListener('click', function(e) {
             e.preventDefault();
             e.stopPropagation();
+            alert('User button clicked!');
+            console.log('User button clicked, calling handleUserSubmit');
             handleUserSubmit();
         });
+    } else {
+        console.error('saveUserBtn not found in DOM');
+        alert('saveUserBtn not found in DOM');
     }
 
     // Designation Modal functionality
@@ -1129,21 +1583,30 @@
 
     // Handle designation form submission
     function handleDesignationSubmit() {
+        if (!saveDesignationBtn) {
+            console.error('saveDesignationBtn not found');
+            return;
+        }
+        
         // Show loading state
         const spinner = saveDesignationBtn.querySelector('.spinner-border');
         const btnText = saveDesignationBtn.querySelector('.btn-text');
-        spinner.classList.remove('d-none');
-        btnText.textContent = 'Creating...';
+        if (spinner) spinner.classList.remove('d-none');
+        if (btnText) btnText.textContent = 'Creating...';
         saveDesignationBtn.disabled = true;
 
         // Clear previous errors
-        createDesignationForm.querySelectorAll('.is-invalid').forEach(field => {
-            field.classList.remove('is-invalid');
-        });
-        createDesignationForm.querySelectorAll('.invalid-feedback').forEach(feedback => {
-            feedback.textContent = '';
-        });
-        designationModalAlert.style.display = 'none';
+        if (createDesignationForm) {
+            createDesignationForm.querySelectorAll('.is-invalid').forEach(field => {
+                field.classList.remove('is-invalid');
+            });
+            createDesignationForm.querySelectorAll('.invalid-feedback').forEach(feedback => {
+                feedback.textContent = '';
+            });
+        }
+        if (designationModalAlert) {
+            designationModalAlert.style.display = 'none';
+        }
 
         // Get department values
         const departmentName = departmentInput.value.trim();
@@ -1160,6 +1623,10 @@
         }
 
         // Prepare form data
+        if (!createDesignationForm) {
+            console.error('createDesignationForm not found');
+            return;
+        }
         const formData = new FormData(createDesignationForm);
         formData.append('_token', document.querySelector('meta[name="csrf-token"]').getAttribute('content'));
         
@@ -1195,7 +1662,9 @@
                 // Show success message
                 designationModalAlert.className = 'alert alert-success';
                 designationModalAlert.textContent = 'Designation created successfully!';
-                designationModalAlert.style.display = 'block';
+                if (designationModalAlert) {
+                    designationModalAlert.style.display = 'block';
+                }
                 
                 // Close modal after a short delay
                 setTimeout(() => {
@@ -1204,7 +1673,7 @@
                 }, 1500);
             } else {
                 // Handle validation errors
-                if (data.errors) {
+                if (data.errors && createDesignationForm) {
                     Object.keys(data.errors).forEach(field => {
                         const input = createDesignationForm.querySelector(`[name="${field}"]`);
                         if (input) {
@@ -1217,22 +1686,26 @@
                     });
                 } else {
                     // Show general error
-                    designationModalAlert.className = 'alert alert-danger';
-                    designationModalAlert.textContent = data.message || 'An error occurred while creating the designation.';
-                    designationModalAlert.style.display = 'block';
+                    if (designationModalAlert) {
+                        designationModalAlert.className = 'alert alert-danger';
+                        designationModalAlert.textContent = data.message || 'An error occurred while creating the designation.';
+                        designationModalAlert.style.display = 'block';
+                    }
                 }
             }
         })
         .catch(error => {
-            designationModalAlert.className = 'alert alert-danger';
-            designationModalAlert.textContent = 'An error occurred while creating the designation: ' + error.message;
-            designationModalAlert.style.display = 'block';
+            if (designationModalAlert) {
+                designationModalAlert.className = 'alert alert-danger';
+                designationModalAlert.textContent = 'An error occurred while creating the designation: ' + error.message;
+                designationModalAlert.style.display = 'block';
+            }
         })
         .finally(() => {
             // Reset loading state
-            spinner.classList.add('d-none');
-            btnText.textContent = 'Create Designation';
-            saveDesignationBtn.disabled = false;
+            if (spinner) spinner.classList.add('d-none');
+            if (btnText) btnText.textContent = 'Create Designation';
+            if (saveDesignationBtn) saveDesignationBtn.disabled = false;
         });
     }
 
@@ -1251,409 +1724,6 @@
             e.preventDefault();
             e.stopPropagation();
             handleDesignationSubmit();
-        });
-    }
-
-    // Auto-generate email when name changes
-    const modalUserName = document.getElementById('modal_user_name');
-    if (modalUserName) {
-        modalUserName.addEventListener('input', function() {
-            const emailField = document.getElementById('modal_user_email');
-            if (emailField && !emailField.value) {
-                const name = this.value.toLowerCase().replace(/\s+/g, '.');
-                const generatedEmail = name + '@company.com';
-                emailField.value = generatedEmail;
-            }
-        });
-    }
-
-    // Floor Modal functionality
-    const addFloorForm = document.getElementById('addFloorForm');
-    const floorModal = document.getElementById('addFloorModal');
-    const saveFloorBtn = document.getElementById('saveFloorBtn');
-    const floorModalAlert = document.getElementById('floorModalAlert');
-    const floorSelect = document.getElementById('floor_level');
-
-    // Reset floor modal form when modal is closed
-    if (floorModal) {
-        floorModal.addEventListener('hidden.bs.modal', function() {
-            if (addFloorForm) {
-                addFloorForm.reset();
-                addFloorForm.querySelectorAll('.is-invalid').forEach(field => {
-                    field.classList.remove('is-invalid');
-                });
-                addFloorForm.querySelectorAll('.invalid-feedback').forEach(feedback => {
-                    feedback.textContent = '';
-                });
-            }
-            if (floorModalAlert) {
-                floorModalAlert.style.display = 'none';
-            }
-        });
-    }
-
-    // Handle floor form submission
-    function handleFloorSubmit() {
-        // Show loading state
-        const spinner = saveFloorBtn.querySelector('.spinner-border');
-        const btnText = saveFloorBtn.querySelector('.btn-text');
-        spinner.classList.remove('d-none');
-        btnText.textContent = 'Adding...';
-        saveFloorBtn.disabled = true;
-
-        // Clear previous errors
-        addFloorForm.querySelectorAll('.is-invalid').forEach(field => {
-            field.classList.remove('is-invalid');
-        });
-        addFloorForm.querySelectorAll('.invalid-feedback').forEach(feedback => {
-            feedback.textContent = '';
-        });
-        floorModalAlert.style.display = 'none';
-
-        // Prepare form data
-        const formData = new FormData(addFloorForm);
-        formData.append('_token', document.querySelector('meta[name="csrf-token"]').getAttribute('content'));
-
-        // Submit via AJAX
-        fetch('{{ route("floor.storeAjax") }}', {
-            method: 'POST',
-            body: formData,
-            headers: {
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-                'Accept': 'application/json'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // Add new floor to the select dropdown
-                const newOption = document.createElement('option');
-                newOption.value = data.floor.name;
-                newOption.textContent = data.floor.name + ' (' + data.floor.serial_number + ')';
-                floorSelect.appendChild(newOption);
-                
-                // Select the new floor
-                floorSelect.value = data.floor.name;
-                
-                // Show success message
-                floorModalAlert.className = 'alert alert-success';
-                floorModalAlert.textContent = 'Floor added successfully!';
-                floorModalAlert.style.display = 'block';
-                
-                // Close modal after a short delay
-                setTimeout(() => {
-                    const modal = bootstrap.Modal.getInstance(floorModal);
-                    modal.hide();
-                }, 1500);
-            } else {
-                // Handle validation errors
-                if (data.errors) {
-                    Object.keys(data.errors).forEach(field => {
-                        const input = addFloorForm.querySelector(`[name="${field}"]`);
-                        if (input) {
-                            input.classList.add('is-invalid');
-                            const feedback = input.parentElement.querySelector('.invalid-feedback');
-                            if (feedback) {
-                                feedback.textContent = data.errors[field][0];
-                            }
-                        }
-                    });
-                } else {
-                    // Show general error
-                    floorModalAlert.className = 'alert alert-danger';
-                    floorModalAlert.textContent = data.message || 'An error occurred while adding the floor.';
-                    floorModalAlert.style.display = 'block';
-                }
-            }
-        })
-        .catch(error => {
-            floorModalAlert.className = 'alert alert-danger';
-            floorModalAlert.textContent = 'An error occurred while adding the floor: ' + error.message;
-            floorModalAlert.style.display = 'block';
-        })
-        .finally(() => {
-            // Reset loading state
-            spinner.classList.add('d-none');
-            btnText.textContent = 'Add Floor';
-            saveFloorBtn.disabled = false;
-        });
-    }
-
-    // Handle floor form submission
-    if (addFloorForm) {
-        addFloorForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            handleFloorSubmit();
-        });
-    }
-
-    // Handle floor button click
-    if (saveFloorBtn) {
-        saveFloorBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            handleFloorSubmit();
-        });
-    }
-
-    // Room Modal functionality
-    const addRoomForm = document.getElementById('addRoomForm');
-    const roomModal = document.getElementById('addRoomModal');
-    const saveRoomBtn = document.getElementById('saveRoomBtn');
-    const roomModalAlert = document.getElementById('roomModalAlert');
-    const roomSelect = document.getElementById('room_number');
-
-    // Reset room modal form when modal is closed
-    if (roomModal) {
-        roomModal.addEventListener('hidden.bs.modal', function() {
-            if (addRoomForm) {
-                addRoomForm.reset();
-                addRoomForm.querySelectorAll('.is-invalid').forEach(field => {
-                    field.classList.remove('is-invalid');
-                });
-                addRoomForm.querySelectorAll('.invalid-feedback').forEach(feedback => {
-                    feedback.textContent = '';
-                });
-            }
-            if (roomModalAlert) {
-                roomModalAlert.style.display = 'none';
-            }
-        });
-    }
-
-    // Handle room form submission
-    function handleRoomSubmit() {
-        // Show loading state
-        const spinner = saveRoomBtn.querySelector('.spinner-border');
-        const btnText = saveRoomBtn.querySelector('.btn-text');
-        spinner.classList.remove('d-none');
-        btnText.textContent = 'Adding...';
-        saveRoomBtn.disabled = true;
-
-        // Clear previous errors
-        addRoomForm.querySelectorAll('.is-invalid').forEach(field => {
-            field.classList.remove('is-invalid');
-        });
-        addRoomForm.querySelectorAll('.invalid-feedback').forEach(feedback => {
-            feedback.textContent = '';
-        });
-        roomModalAlert.style.display = 'none';
-
-        // Prepare form data
-        const formData = new FormData(addRoomForm);
-        formData.append('_token', document.querySelector('meta[name="csrf-token"]').getAttribute('content'));
-
-        // Submit via AJAX
-        fetch('{{ route("room.storeAjax") }}', {
-            method: 'POST',
-            body: formData,
-            headers: {
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-                'Accept': 'application/json'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // Add new room to the select dropdown
-                const newOption = document.createElement('option');
-                newOption.value = data.room.name;
-                newOption.textContent = data.room.name + ' (' + data.room.room_number + ') - ' + data.room.floor_name;
-                roomSelect.appendChild(newOption);
-                
-                // Select the new room
-                roomSelect.value = data.room.name;
-                
-                // Show success message
-                roomModalAlert.className = 'alert alert-success';
-                roomModalAlert.textContent = 'Room added successfully!';
-                roomModalAlert.style.display = 'block';
-                
-                // Close modal after a short delay
-                setTimeout(() => {
-                    const modal = bootstrap.Modal.getInstance(roomModal);
-                    modal.hide();
-                }, 1500);
-            } else {
-                // Handle validation errors
-                if (data.errors) {
-                    Object.keys(data.errors).forEach(field => {
-                        const input = addRoomForm.querySelector(`[name="${field}"]`);
-                        if (input) {
-                            input.classList.add('is-invalid');
-                            const feedback = input.parentElement.querySelector('.invalid-feedback');
-                            if (feedback) {
-                                feedback.textContent = data.errors[field][0];
-                            }
-                        }
-                    });
-                } else {
-                    // Show general error
-                    roomModalAlert.className = 'alert alert-danger';
-                    roomModalAlert.textContent = data.message || 'An error occurred while adding the room.';
-                    roomModalAlert.style.display = 'block';
-                }
-            }
-        })
-        .catch(error => {
-            roomModalAlert.className = 'alert alert-danger';
-            roomModalAlert.textContent = 'An error occurred while adding the room: ' + error.message;
-            roomModalAlert.style.display = 'block';
-        })
-        .finally(() => {
-            // Reset loading state
-            spinner.classList.add('d-none');
-            btnText.textContent = 'Add Room';
-            saveRoomBtn.disabled = false;
-        });
-    }
-
-    // Handle room form submission
-    if (addRoomForm) {
-        addRoomForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            handleRoomSubmit();
-        });
-    }
-
-    // Handle room button click
-    if (saveRoomBtn) {
-        saveRoomBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            handleRoomSubmit();
-        });
-    }
-
-    // Supplier Modal functionality
-    const addSupplierForm = document.getElementById('addSupplierForm');
-    const supplierModal = document.getElementById('addSupplierModal');
-    const supplierSelect = document.getElementById('supplier_id');
-    const saveSupplierBtn = document.getElementById('saveSupplierBtn');
-    const supplierModalAlert = document.getElementById('supplierModalAlert');
-
-    // Reset modal form when modal is closed
-    if (supplierModal) {
-        supplierModal.addEventListener('hidden.bs.modal', function() {
-            if (addSupplierForm) {
-                addSupplierForm.reset();
-                addSupplierForm.querySelectorAll('.is-invalid').forEach(field => {
-                    field.classList.remove('is-invalid');
-                });
-                addSupplierForm.querySelectorAll('.invalid-feedback').forEach(feedback => {
-                    feedback.textContent = '';
-                });
-            }
-            if (supplierModalAlert) {
-                supplierModalAlert.style.display = 'none';
-            }
-        });
-    }
-
-    // Handle supplier form submission
-    function handleSupplierSubmit() {
-        // Show loading state
-        const spinner = saveSupplierBtn.querySelector('.spinner-border');
-        const btnText = saveSupplierBtn.querySelector('.btn-text');
-        spinner.classList.remove('d-none');
-        btnText.textContent = 'Adding...';
-        saveSupplierBtn.disabled = true;
-
-        // Clear previous errors
-        addSupplierForm.querySelectorAll('.is-invalid').forEach(field => {
-            field.classList.remove('is-invalid');
-        });
-        addSupplierForm.querySelectorAll('.invalid-feedback').forEach(feedback => {
-            feedback.textContent = '';
-        });
-        supplierModalAlert.style.display = 'none';
-
-        // Prepare form data
-        const formData = new FormData(addSupplierForm);
-        formData.append('_token', document.querySelector('meta[name="csrf-token"]').getAttribute('content'));
-
-        // Submit via AJAX
-        fetch('{{ route("supplier.storeAjax") }}', {
-            method: 'POST',
-            body: formData,
-            headers: {
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-                'Accept': 'application/json'
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // Add new supplier to dropdown
-                const newOption = document.createElement('option');
-                newOption.value = data.supplier.id;
-                newOption.textContent = data.supplier.name;
-                supplierSelect.appendChild(newOption);
-                
-                // Select the new supplier
-                supplierSelect.value = data.supplier.id;
-                
-                // Show success message
-                supplierModalAlert.className = 'alert alert-success';
-                supplierModalAlert.textContent = 'Supplier added successfully!';
-                supplierModalAlert.style.display = 'block';
-                
-                // Close modal after a short delay
-                setTimeout(() => {
-                    const modal = bootstrap.Modal.getInstance(supplierModal);
-                    modal.hide();
-                }, 1500);
-            } else {
-                // Handle validation errors
-                if (data.errors) {
-                    Object.keys(data.errors).forEach(field => {
-                        const input = addSupplierForm.querySelector(`[name="${field}"]`);
-                        if (input) {
-                            input.classList.add('is-invalid');
-                            const feedback = input.parentElement.querySelector('.invalid-feedback');
-                            if (feedback) {
-                                feedback.textContent = data.errors[field][0];
-                            }
-                        }
-                    });
-                } else {
-                    // Show general error
-                    supplierModalAlert.className = 'alert alert-danger';
-                    supplierModalAlert.textContent = data.message || 'An error occurred while adding the supplier.';
-                    supplierModalAlert.style.display = 'block';
-                }
-            }
-        })
-        .catch(error => {
-            supplierModalAlert.className = 'alert alert-danger';
-            supplierModalAlert.textContent = 'An error occurred while adding the supplier: ' + error.message;
-            supplierModalAlert.style.display = 'block';
-        })
-        .finally(() => {
-            // Reset loading state
-            spinner.classList.add('d-none');
-            btnText.textContent = 'Add Supplier';
-            saveSupplierBtn.disabled = false;
-        });
-    }
-
-    // Handle supplier form submission
-    if (addSupplierForm) {
-        addSupplierForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            handleSupplierSubmit();
-        });
-    }
-
-    // Handle supplier button click
-    if (saveSupplierBtn) {
-        saveSupplierBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            handleSupplierSubmit();
         });
     }
 
@@ -1847,123 +1917,6 @@
                     <button type="button" class="btn btn-primary" id="saveRoomBtn">
                         <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
                         <span class="btn-text">Add Room</span>
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- Add User Modal -->
-<div class="modal fade" id="addUserModal" tabindex="-1" aria-labelledby="addUserModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content border-0 shadow-lg">
-            <div class="modal-header bg-primary text-white border-0">
-                <h5 class="modal-title fw-bold text-white" id="addUserModalLabel">
-                    <i class="fas fa-user-plus me-2"></i>
-                    Add New User
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form id="addUserForm" onsubmit="return false;">
-                <div class="modal-body">
-                    <div id="userModalAlert" class="alert" style="display: none;"></div>
-                    
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="modal_user_name" class="form-label">Full Name <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="modal_user_name" name="name" required>
-                                <div class="invalid-feedback"></div>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="modal_user_email" class="form-label">Email Address</label>
-                                <input type="email" class="form-control" id="modal_user_email" name="email" placeholder="Leave empty to auto-generate">
-                                <small class="form-text text-muted">If left empty, email will be auto-generated from name</small>
-                                <div class="invalid-feedback"></div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="modal_user_designation_id" class="form-label">Designation <span class="text-danger">*</span></label>
-                        <div class="input-group">
-                            <select class="form-select" id="modal_user_designation_id" name="designation_id" required>
-                                <option value="">-- Select Designation --</option>
-                                @foreach(\App\Models\Designation::with('department')->get() as $designation)
-                                    <option value="{{ $designation->id }}">{{ $designation->name }} ({{ $designation->department->name }})</option>
-                                @endforeach
-                            </select>
-                            <button type="button" class="btn btn-outline-primary" id="createDesignationBtn" data-bs-toggle="modal" data-bs-target="#createDesignationModal">
-                                <i class="fas fa-plus"></i> Create New
-                            </button>
-                        </div>
-                        <div class="invalid-feedback"></div>
-                    </div>
-                    
-                    <!-- Hidden fields for auto-generated values -->
-                    <input type="hidden" id="modal_user_password" name="password" value="">
-                    <input type="hidden" id="modal_user_role" name="role" value="employee">
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" id="saveUserBtn">
-                        <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
-                        <span class="btn-text">Add User</span>
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- Create Designation Modal -->
-<div class="modal fade" id="createDesignationModal" tabindex="-1" aria-labelledby="createDesignationModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content border-0 shadow-lg">
-            <div class="modal-header bg-success text-white border-0">
-                <h5 class="modal-title fw-bold text-white" id="createDesignationModalLabel">
-                    <i class="fas fa-plus me-2"></i>
-                    Create New Designation
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form id="createDesignationForm" onsubmit="return false;">
-                <div class="modal-body">
-                    <div id="designationModalAlert" class="alert" style="display: none;"></div>
-                    
-                    <div class="mb-3">
-                        <label for="new_designation_name" class="form-label">Designation Name <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="new_designation_name" name="name" required>
-                        <div class="invalid-feedback"></div>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="new_designation_department_id" class="form-label">Department <span class="text-danger">*</span></label>
-                        <div class="position-relative">
-                            <input type="text" class="form-control" id="new_designation_department_input" placeholder="Type department name or select from list" autocomplete="off">
-                            <input type="hidden" id="new_designation_department_id" name="department_id">
-                            <div class="dropdown-menu w-100" id="departmentDropdown" style="display: none; position: absolute; z-index: 1000;">
-                                @foreach(\App\Models\Department::all() as $department)
-                                    <a class="dropdown-item" href="#" data-id="{{ $department->id }}" data-name="{{ $department->name }}">{{ $department->name }}</a>
-                                @endforeach
-                                <div class="dropdown-divider"></div>
-                                <a class="dropdown-item text-primary" href="#" id="createNewDepartment">
-                                    <i class="fas fa-plus me-1"></i>Create new department
-                                </a>
-                            </div>
-                        </div>
-                        <small class="form-text text-muted">Type to search existing departments or create a new one</small>
-                        <div class="invalid-feedback"></div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-success" id="saveDesignationBtn">
-                        <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
-                        <span class="btn-text">Create Designation</span>
                     </button>
                 </div>
             </form>

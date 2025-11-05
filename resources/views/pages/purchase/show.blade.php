@@ -15,7 +15,7 @@
                     <p class="card-text mb-1"><strong>Supplier:</strong> {{ $purchase->supplier ? $purchase->supplier->name : '-' }}</p>
                     <p class="card-text mb-1"><strong>Invoice Number:</strong> {{ $purchase->invoice_number }}</p>
                     <p class="card-text mb-1"><strong>Purchase Date:</strong> {{ $purchase->purchase_date->format('d-M-Y') }}</p>
-                    <p class="card-text mb-1"><strong>Total Value:</strong> <span class="text-success fw-bold">${{ number_format($purchase->total_value, 2) }}</span></p>
+                    <p class="card-text mb-1"><strong>Total Value:</strong> <span class="text-success fw-bold">৳{{ number_format($purchase->total_value, 2) }}</span></p>
                 </div>
                 <div class="col-md-6">
                     <p class="card-text mb-1"><strong>Department:</strong> {{ $purchase->department ? $purchase->department->name . ' (Level ' . $purchase->department->location . ')' : '-' }}</p>

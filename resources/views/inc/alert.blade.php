@@ -19,7 +19,7 @@
                     <small class="text-muted">
                         <strong>Purchase Details:</strong><br>
                         • Items Added: {{ session('details.items_count') ?? 0 }}<br>
-                        • Total Value: ${{ session('details.total_value') ?? '0.00' }}<br>
+                        • Total Value: ৳{{ session('details.total_value') ?? '0.00' }}<br>
                         • Department: {{ session('details.department') ?? 'Unknown' }}
                     </small>
                 </div>

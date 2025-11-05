@@ -63,7 +63,8 @@ class RoomController extends Controller
                     'name' => $room->name,
                     'description' => $room->description,
                     'status' => $room->status,
-                    'floor_name' => $room->floor->name
+                    'floor_name' => $room->floor->name,
+                    'floor_id' => $room->floor_id
                 ]
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {

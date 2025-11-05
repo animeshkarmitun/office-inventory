@@ -25,8 +25,7 @@
                     <th scope="col">Person in charge</th>
                     <th scope="col">Contact</th>
                     <th scope="col">Email</th>
-                    <th scope="col">Tax Number</th>
-                    <th scope="col">Payment Terms</th>
+                    <th scope="col">Address</th>
                     <th scope="col">Actions</th>
                 </tr>
             </thead>
@@ -38,8 +37,7 @@
                     <td>{{ $supplier->incharge_name }}</td>
                     <td>{{ $supplier->contact_number }}</td>
                     <td>{{ $supplier->email ?? 'N/A' }}</td>
-                    <td>{{ $supplier->tax_number ?? 'N/A' }}</td>
-                    <td>{{ $supplier->payment_terms ?? 'N/A' }}</td>
+                    <td>{{ $supplier->address ?? 'N/A' }}</td>
                     <td>
                         <div class="btn-group" role="group">
                             <a href="{{ route('supplier.showEdit', ['id'=>$supplier->id]) }}" class="btn btn-warning btn-sm">
