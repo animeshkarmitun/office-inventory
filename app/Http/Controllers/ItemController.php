@@ -164,7 +164,7 @@ class ItemController extends Controller
             'serial_number' => 'nullable|string|max:255',
             'asset_tag' => 'nullable|string|max:255',
             'barcode' => 'nullable|string|max:255',
-            'rfid_tag' => 'nullable|string|max:255',
+            'rfid_tag' => 'nullable|string|max:255|unique:items,rfid_tag',
             'description' => 'nullable|string',
             'specifications' => 'nullable|string|max:1000',
             'asset_type' => 'required|in:fixed,current',
@@ -182,12 +182,19 @@ class ItemController extends Controller
             'condition' => 'nullable|string|max:255',
             'images' => 'nullable|array|max:10',
             'images.*' => 'image|mimes:jpeg,png,jpg,gif,webp|max:10240',
+            'camera_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:10240',
             'purchase_id' => 'nullable|exists:purchases,id',
             'purchase_item_id' => 'nullable|exists:purchase_items,id',
         ]);
 
         $fields = $request->except(['individual_count', '_token', 'images', 'purchase_item_id']);
         $fields['tracking_mode'] = $request->tracking_mode;
+
+        // DB column `condition` is NOT NULL with a default. If the form submits it empty,
+        // Laravel converts it to null; omit the key so the DB default is applied.
+        if (array_key_exists('condition', $fields) && $fields['condition'] === null) {
+            unset($fields['condition']);
+        }
         
         // Add purchase_id if provided
         if ($request->filled('purchase_id')) {
@@ -206,19 +213,40 @@ class ItemController extends Controller
             $fields['depreciation_cost'] = ($request->value * $request->depreciation_rate) / 100;
         }
 
-        // Handle multiple image uploads
-        $imagePaths = [];
+        // Handle image uploads (files + optional camera capture)
+        // IMPORTANT: don't rely on array indexes; they can be non-0-based depending on the browser/form.
+        $processedImages = [];
+        $uploadedImages = [];
         if ($request->hasFile('images')) {
-            foreach ($request->file('images') as $index => $image) {
-                $result = $this->imageService->processAndStore($image);
-                
-                if ($result['success']) {
-                    $imagePaths[] = $result['processed_path'];
-                } else {
-                    return redirect()->back()
-                        ->withInput()
-                        ->withErrors(['images.' . $index => 'Image upload failed: ' . $result['error']]);
+            $files = $request->file('images');
+            if (is_array($files)) {
+                foreach ($files as $f) {
+                    if ($f) $uploadedImages[] = $f;
                 }
+            }
+        }
+        if ($request->hasFile('camera_image')) {
+            $uploadedImages[] = $request->file('camera_image');
+        }
+        if (count($uploadedImages) > 10) {
+            return redirect()->back()
+                ->withInput()
+                ->withErrors(['images' => 'You can upload up to 10 images.']);
+        }
+
+        foreach ($uploadedImages as $index => $image) {
+            $result = $this->imageService->processAndStore($image);
+            if ($result['success']) {
+                $processedImages[] = [
+                    'processed_path' => $result['processed_path'],
+                    'original_name' => $image->getClientOriginalName(),
+                    'file_type' => $image->getClientMimeType(),
+                    'file_size' => $image->getSize(),
+                ];
+            } else {
+                return redirect()->back()
+                    ->withInput()
+                    ->withErrors(['images.' . $index => 'Image upload failed: ' . $result['error']]);
             }
         }
 
@@ -238,13 +266,13 @@ class ItemController extends Controller
                 $totalQuantity = $request->quantity;
                 
                 // Save images for this item
-                foreach ($imagePaths as $sortOrder => $imagePath) {
+                foreach ($processedImages as $sortOrder => $img) {
                     \App\Models\ItemImage::create([
                         'item_id' => $item->id,
-                        'image_path' => $imagePath,
-                        'original_name' => $request->file('images')[$sortOrder]->getClientOriginalName(),
-                        'file_type' => $request->file('images')[$sortOrder]->getClientMimeType(),
-                        'file_size' => $request->file('images')[$sortOrder]->getSize(),
+                        'image_path' => $img['processed_path'],
+                        'original_name' => $img['original_name'],
+                        'file_type' => $img['file_type'],
+                        'file_size' => $img['file_size'],
                         'sort_order' => $sortOrder,
                     ]);
                 }
@@ -263,13 +291,13 @@ class ItemController extends Controller
                     $item = Item::create($fields);
                     
                     // Save images for this item
-                    foreach ($imagePaths as $sortOrder => $imagePath) {
+                    foreach ($processedImages as $sortOrder => $img) {
                         \App\Models\ItemImage::create([
                             'item_id' => $item->id,
-                            'image_path' => $imagePath,
-                            'original_name' => $request->file('images')[$sortOrder]->getClientOriginalName(),
-                            'file_type' => $request->file('images')[$sortOrder]->getClientMimeType(),
-                            'file_size' => $request->file('images')[$sortOrder]->getSize(),
+                            'image_path' => $img['processed_path'],
+                            'original_name' => $img['original_name'],
+                            'file_type' => $img['file_type'],
+                            'file_size' => $img['file_size'],
                             'sort_order' => $sortOrder,
                         ]);
                     }
@@ -345,7 +373,7 @@ class ItemController extends Controller
             'serial_number' => 'nullable|string|max:255',
             'asset_tag' => 'nullable|string|max:255',
             'barcode' => 'nullable|string|max:255',
-            'rfid_tag' => 'nullable|string|max:255',
+            'rfid_tag' => 'nullable|string|max:255|unique:items,rfid_tag,' . $id,
             'description' => 'nullable|string',
             'specifications' => 'nullable|string|max:1000',
             'asset_type' => 'required|in:fixed,current',
@@ -363,12 +391,18 @@ class ItemController extends Controller
             'condition' => 'nullable|string|max:255',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
             'images' => 'nullable|array|max:10',
-            'images.*' => 'image|mimes:jpeg,png,jpg,gif,webp|max:10240'
+            'images.*' => 'image|mimes:jpeg,png,jpg,gif,webp|max:10240',
+            'camera_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:10240'
         ]);
 
         $item = Item::findOrFail($id);
         
         $updateData = $request->except(['image', 'images']);
+
+        // If condition is cleared/empty, keep existing DB value (column is NOT NULL).
+        if (array_key_exists('condition', $updateData) && $updateData['condition'] === null) {
+            unset($updateData['condition']);
+        }
         
         // Calculate depreciation cost automatically if value and depreciation rate are provided
         if ($request->filled('value') && $request->filled('depreciation_rate')) {

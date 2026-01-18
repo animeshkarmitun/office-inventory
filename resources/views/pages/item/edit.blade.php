@@ -405,9 +405,25 @@
 
                             <!-- New Images Upload -->
                             <div class="mb-3">
-                                <label for="images" class="form-label fw-semibold">Upload New Images</label>
-                                <input type="file" name="images[]" id="images" class="form-control @error('images') is-invalid @enderror" accept="image/*" multiple>
-                                <small class="form-text text-muted">Supported formats: JPG, PNG, GIF, WEBP (Max 10MB per image, Multiple images allowed)</small>
+                                <div class="row g-2">
+                                    <div class="col-md-6">
+                                        <label for="camera_images" class="form-label fw-semibold">Take Photo (Camera)</label>
+                                        <input
+                                            type="file"
+                                            name="camera_image"
+                                            id="camera_images"
+                                            class="form-control"
+                                            accept="image/*"
+                                            capture="environment"
+                                        >
+                                        <small class="form-text text-muted">On mobile this opens the camera. Captured photos will be added to the upload list.</small>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="images" class="form-label fw-semibold">Upload New Images (Files)</label>
+                                        <input type="file" name="images[]" id="images" class="form-control @error('images') is-invalid @enderror" accept="image/*" multiple>
+                                        <small class="form-text text-muted">Supported formats: JPG, PNG, GIF, WEBP (Max 10MB per image, Multiple images allowed)</small>
+                                    </div>
+                                </div>
                                 @error('images')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
@@ -1141,9 +1157,39 @@
 
         // Multiple image upload handling
         const imageInput = document.getElementById('images');
+        const cameraInput = document.getElementById('camera_images');
         const imagePreview = document.getElementById('imagePreview');
         const imagePreviewContainer = document.getElementById('imagePreviewContainer');
         const maxFileSize = 10 * 1024 * 1024; // 10MB in bytes
+        const maxImages = 10;
+
+        function addFilesToImagesInput(newFiles) {
+            if (!imageInput || !newFiles || newFiles.length === 0) return;
+
+            const existingFiles = Array.from(imageInput.files || []);
+            const combined = existingFiles.concat(Array.from(newFiles));
+
+            if (combined.length > maxImages) {
+                alert(`You can upload up to ${maxImages} images. You already selected ${existingFiles.length}.`);
+                return;
+            }
+
+            const dt = new DataTransfer();
+            combined.forEach((file) => dt.items.add(file));
+            imageInput.files = dt.files;
+
+            // Trigger change event to run validation + refresh preview
+            imageInput.dispatchEvent(new Event('change'));
+        }
+
+        // Camera capture → merge into existing multi-file input
+        if (cameraInput) {
+            cameraInput.addEventListener('change', function (e) {
+                addFilesToImagesInput(e.target.files);
+                // Clear camera input to avoid submitting duplicates
+                cameraInput.value = '';
+            });
+        }
 
         if (imageInput) {
             imageInput.addEventListener('change', function(e) {
@@ -1151,6 +1197,12 @@
             imagePreviewContainer.innerHTML = '';
             
             if (files.length === 0) {
+                imagePreview.style.display = 'none';
+                return;
+            }
+            if (files.length > maxImages) {
+                alert(`You can upload up to ${maxImages} images.`);
+                e.target.value = '';
                 imagePreview.style.display = 'none';
                 return;
             }
