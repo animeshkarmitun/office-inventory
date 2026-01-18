@@ -95,6 +95,16 @@
             min-width: 0;
             transition: margin-left 0.2s;
         }
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.35);
+            z-index: 1025;
+        }
+        .sidebar-overlay.show {
+            display: block;
+        }
         @media (max-width: 991.98px) {
             .layout-wrapper { flex-direction: column; }
             .sidebar { position: fixed; left: -250px; top: 0; width: 250px; height: 100vh; transition: left 0.3s, width 0.2s; }
@@ -114,6 +124,7 @@
 <body style="font-family: 'Roboto', Arial, sans-serif;">
     <div id="app">
         <div class="layout-wrapper">
+            <div class="sidebar-overlay" id="sidebarOverlay" aria-hidden="true"></div>
             <nav class="sidebar" id="sidebar">
                 <div class="sidebar-header">
                     <a href="{{ route('dashboard') }}" class="text-white text-decoration-none d-flex align-items-center">
@@ -177,6 +188,13 @@
                 </div>
             </nav>
             <div class="main-content">
+                {{-- Mobile menu toggle (visible on small screens) --}}
+                <div class="d-lg-none d-flex align-items-center justify-content-between mb-3">
+                    <button class="btn btn-outline-secondary" id="sidebarToggle" type="button" aria-label="Open menu">
+                        <i class="bi bi-list"></i>
+                    </button>
+                    <span class="fw-semibold">{{ env('APP_NAME', 'Inventory') }}</span>
+                </div>
                 @yield('content')
             </div>
         </div>
@@ -195,15 +213,72 @@
             const sidebar = document.getElementById('sidebar');
             const sidebarToggle = document.getElementById('sidebarToggle');
             const sidebarCollapseBtn = document.getElementById('sidebarCollapseBtn');
+            const sidebarOverlay = document.getElementById('sidebarOverlay');
+
+            const isMobile = () => window.matchMedia('(max-width: 991.98px)').matches;
+
+            const openSidebar = () => {
+                // On mobile, always open the full sidebar (not collapsed)
+                if (isMobile()) {
+                    sidebar.classList.remove('collapsed');
+                }
+                sidebar.classList.add('show');
+                if (sidebarOverlay) sidebarOverlay.classList.add('show');
+
+                // On mobile, use the header button as a close (X) button
+                if (isMobile() && sidebarCollapseBtn) {
+                    const icon = sidebarCollapseBtn.querySelector('i');
+                    if (icon) icon.className = 'bi bi-x-lg';
+                    sidebarCollapseBtn.setAttribute('aria-label', 'Close menu');
+                }
+            };
+
+            const closeSidebar = () => {
+                sidebar.classList.remove('show');
+                if (sidebarOverlay) sidebarOverlay.classList.remove('show');
+
+                // Reset header button icon when sidebar closes (mobile)
+                if (isMobile() && sidebarCollapseBtn) {
+                    const icon = sidebarCollapseBtn.querySelector('i');
+                    if (icon) icon.className = 'bi bi-list';
+                    sidebarCollapseBtn.setAttribute('aria-label', 'Open menu');
+                }
+            };
+
             // Mobile show/hide
             if (sidebarToggle) {
                 sidebarToggle.addEventListener('click', function() {
-                    sidebar.classList.toggle('show');
+                    if (sidebar.classList.contains('show')) {
+                        closeSidebar();
+                    } else {
+                        openSidebar();
+                    }
+                });
+            }
+            if (sidebarOverlay) {
+                sidebarOverlay.addEventListener('click', function() {
+                    closeSidebar();
+                });
+            }
+            // Close sidebar after clicking a nav link on mobile
+            if (sidebar) {
+                sidebar.addEventListener('click', function(e) {
+                    const target = e.target;
+                    if (!isMobile()) return;
+                    if (target && target.closest && target.closest('a.nav-link')) {
+                        closeSidebar();
+                    }
                 });
             }
             // Desktop/mobile collapse
             if (sidebarCollapseBtn) {
                 sidebarCollapseBtn.addEventListener('click', function() {
+                    // On mobile, this button should close the sidebar (not collapse it)
+                    if (isMobile()) {
+                        closeSidebar();
+                        return;
+                    }
+
                     sidebar.classList.toggle('collapsed');
                     
                     // Change button icon based on sidebar state
@@ -231,6 +306,24 @@
                     }
                 });
             }
+            // Ensure overlay is hidden when resizing to desktop
+            window.addEventListener('resize', function() {
+                if (!isMobile()) {
+                    closeSidebar();
+
+                    // Restore desktop icon state based on collapse status
+                    if (sidebarCollapseBtn) {
+                        const icon = sidebarCollapseBtn.querySelector('i');
+                        if (icon) {
+                            icon.className = sidebar.classList.contains('collapsed') ? 'bi bi-chevron-right' : 'bi bi-list';
+                        }
+                        sidebarCollapseBtn.setAttribute(
+                            'aria-label',
+                            sidebar.classList.contains('collapsed') ? 'Expand sidebar' : 'Collapse sidebar'
+                        );
+                    }
+                }
+            });
         });
     </script>
     @yield('scripts')
