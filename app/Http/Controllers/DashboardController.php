@@ -18,7 +18,8 @@ class DashboardController extends Controller
             
             switch ($role) {
                 case 'super_admin':
-                    return redirect()->route('user-management.index');
+                    // Default landing page for super admin: Item list
+                    return redirect()->route('item');
                 case 'admin':
                     return redirect()->route('admin.dashboard');
                 case 'asset_manager':

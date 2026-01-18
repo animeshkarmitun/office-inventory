@@ -43,7 +43,8 @@ class LoginController extends Controller
             // Regenerate session to prevent session fixation
             $request->session()->regenerate();
             
-            return redirect()->route('dashboard')->with(['message' => 'Login successful', 'alert' => 'alert-success']);
+            // Default landing page after login: Item list
+            return redirect()->route('item')->with(['message' => 'Login successful', 'alert' => 'alert-success']);
         }
 
         \Log::warning('Login failed: Invalid password for email: ' . $request->email);

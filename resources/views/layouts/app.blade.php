@@ -169,6 +169,10 @@
                                 <li><a class="dropdown-item" href="{{ route('logout') }}"><i class="bi bi-box-arrow-right"></i> Log out</a></li>
                             </ul>
                         </div>
+                        {{-- Always-visible logout link (not hidden in dropdown) --}}
+                        <a class="nav-link text-white mt-2" href="{{ route('logout') }}">
+                            <i class="bi bi-box-arrow-right me-1"></i><span class="user-name">Log out</span>
+                        </a>
                     @endguest
                 </div>
             </nav>

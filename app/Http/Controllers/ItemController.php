@@ -25,32 +25,81 @@ class ItemController extends Controller
         $query = Item::query();
 
         if ($request->filled('search')) {
-            $search = $request->input('search');
-            $query->where(function($q) use ($search) {
-                $q->where('name', 'like', "%$search%")
-                  ->orWhere('serial_number', 'like', "%$search%")
-                  ->orWhere('asset_tag', 'like', "%$search%")
-                  ->orWhere('barcode', 'like', "%$search%")
-                  ->orWhere('rfid_tag', 'like', "%$search%")
-                  ->orWhere('location', 'like', "%$search%")
-                  ->orWhere('condition', 'like', "%$search%")
-                  ->orWhere('asset_type', 'like', "%$search%")
-                  ->orWhere('value', 'like', "%$search%")
-                  ->orWhere('status', 'like', "%$search%")
-                  ->orWhere('remarks', 'like', "%$search%")
-                  ->orWhere('floor_level', 'like', "%$search%")
-                  ->orWhere('room_number', 'like', "%$search%")
-                  ->orWhere('description', 'like', "%$search%")
-                  ->orWhere('assigned_to', 'like', "%$search%")
-                  ->orWhere('purchased_by', 'like', "%$search%")
-                  ->orWhere('supplier_id', 'like', "%$search%")
-                  ->orWhere('purchase_date', 'like', "%$search%")
-                  ->orWhere('received_by', 'like', "%$search%")
-                  ;
-            });
+            $search = trim((string) $request->input('search'));
+            $terms = preg_split('/\s+/', $search, -1, PREG_SPLIT_NO_EMPTY) ?: [];
+
+            // Search across all key item fields + related fields (supplier, category, users, floor/room, etc.)
+            if (!empty($terms)) {
+                $query->where(function ($outer) use ($terms) {
+                    foreach ($terms as $term) {
+                        $like = '%' . $term . '%';
+                        $termLower = strtolower($term);
+
+                        $outer->where(function ($q) use ($like, $term, $termLower) {
+                            // Direct item fields
+                            $q->where('name', 'like', $like)
+                                ->orWhere('serial_number', 'like', $like)
+                                ->orWhere('asset_tag', 'like', $like)
+                                ->orWhere('barcode', 'like', $like)
+                                ->orWhere('rfid_tag', 'like', $like)
+                                ->orWhere('location', 'like', $like)
+                                ->orWhere('condition', 'like', $like)
+                                ->orWhere('asset_type', 'like', $like)
+                                ->orWhere('value', 'like', $like)
+                                ->orWhere('status', 'like', $like)
+                                ->orWhere('remarks', 'like', $like)
+                                ->orWhere('floor_level', 'like', $like)
+                                ->orWhere('room_number', 'like', $like)
+                                ->orWhere('description', 'like', $like)
+                                ->orWhere('specifications', 'like', $like)
+                                ->orWhere('tracking_mode', 'like', $like)
+                                ->orWhere('quantity', 'like', $like)
+                                ->orWhere('purchase_date', 'like', $like);
+
+                            // Fast exact ID match if numeric
+                            if (ctype_digit($term)) {
+                                $q->orWhere('id', (int) $term);
+                            }
+
+                            // Approval keywords
+                            if (in_array($termLower, ['approved', 'approve'], true)) {
+                                $q->orWhere('is_approved', true);
+                            } elseif (in_array($termLower, ['pending', 'unapproved', 'notapproved'], true)) {
+                                $q->orWhere('is_approved', false);
+                            }
+
+                            // Related fields
+                            $q->orWhereHas('supplier', function ($sq) use ($like) {
+                                $sq->where('name', 'like', $like);
+                            })->orWhereHas('category', function ($cq) use ($like) {
+                                $cq->where('name', 'like', $like);
+                            })->orWhereHas('assignedUser', function ($uq) use ($like) {
+                                $uq->where('name', 'like', $like)->orWhere('email', 'like', $like);
+                            })->orWhereHas('approvedBy', function ($aq) use ($like) {
+                                $aq->where('name', 'like', $like)->orWhere('email', 'like', $like);
+                            })->orWhereHas('purchasedBy', function ($pq) use ($like) {
+                                $pq->where('name', 'like', $like)->orWhere('email', 'like', $like);
+                            })->orWhereHas('receivedBy', function ($rq) use ($like) {
+                                $rq->where('name', 'like', $like)->orWhere('email', 'like', $like);
+                            })->orWhereHas('floor', function ($fq) use ($like) {
+                                $fq->where('name', 'like', $like)->orWhere('serial_number', 'like', $like);
+                            })->orWhereHas('room', function ($rq) use ($like) {
+                                $rq->where('name', 'like', $like)->orWhere('room_number', 'like', $like);
+                            })->orWhereHas('purchase', function ($pq) use ($like) {
+                                $pq->where('purchase_number', 'like', $like)
+                                    ->orWhere('invoice_number', 'like', $like);
+                            });
+                        });
+                    }
+                });
+            }
         }
 
-        $items = $query->with(['assignedUser', 'approvedBy'])->orderBy('created_at', 'desc')->paginate(10);
+        $items = $query
+            ->with(['assignedUser', 'approvedBy', 'supplier', 'category', 'floor', 'room', 'purchasedBy', 'receivedBy', 'purchase'])
+            ->orderBy('created_at', 'desc')
+            ->paginate(10)
+            ->withQueryString();
 
         if ($request->ajax()) {
             $html = view('pages.item.partials.table', compact('items'))->render();
