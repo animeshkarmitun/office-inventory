@@ -3,10 +3,9 @@
         <tr>
             <th scope="col">#</th>
             <th scope="col">Name</th>
-            <th scope="col">Serial Number</th>
             <th scope="col">Asset Tag</th>
             <th scope="col">Barcode</th>
-            <th scope="col">RFID Tag</th>
+            <th scope="col">Company</th>
             <th scope="col">Location</th>
             <th scope="col">Assigned User</th>
             <th scope="col">Condition</th>
@@ -21,7 +20,6 @@
         <tr>
             <th scope="row">{{ $item->id }}</th>
             <td><a href="{{ route('item.history', $item->id) }}">{{ $item->name }}</a></td>
-            <td>{{ $item->serial_number }}</td>
             <td>{{ $item->asset_tag ?? 'N/A' }}</td>
             <td>
                 @php
@@ -38,7 +36,7 @@
                     N/A
                 @endif
             </td>
-            <td>{{ $item->rfid_tag ?? 'N/A' }}</td>
+            <td>{{ $item->company->name ?? 'N/A' }}</td>
             <td>
                 {{ $item->floor_level }} - {{ $item->room_number }}
                 @if($item->location)

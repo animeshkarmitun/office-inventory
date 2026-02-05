@@ -5,7 +5,17 @@
 @include('inc.alert')
 <h1 class="mb-4" style="font-size:2.1rem;font-weight:600;">List of Items</h1>
 <div class="item-controls mb-4 d-flex flex-column flex-md-row align-items-center gap-3">
-    <form method="GET" action="{{ route('item') }}" class="search-form">
+    <form method="GET" action="{{ route('item') }}" class="search-form d-flex gap-2">
+        <div class="input-group search-group" style="width: auto;">
+            <select name="company_id" class="form-select" onchange="this.form.submit()" style="border-radius: 2rem; border-color: white;">
+                <option value="">All Companies</option>
+                @foreach($companies as $company)
+                    <option value="{{ $company->id }}" {{ request('company_id') == $company->id ? 'selected' : '' }}>
+                        {{ $company->name }}
+                    </option>
+                @endforeach
+            </select>
+        </div>
         <div class="input-group search-group">
             <input type="text" name="search" class="form-control search-input" placeholder="Search items..." value="{{ request('search') }}" autocomplete="off">
             <button class="btn btn-search" type="submit"><i class="fas fa-search"></i> Search</button>

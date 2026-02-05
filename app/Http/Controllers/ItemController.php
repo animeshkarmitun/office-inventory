@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Category;
 use App\Models\Item;
+use App\Models\Company;
 use App\Models\Supplier;
 use App\Models\AssetMovement;
 use App\Services\ImageService;
@@ -23,6 +24,10 @@ class ItemController extends Controller
     public function index(Request $request)
     {
         $query = Item::query();
+
+        if ($request->filled('company_id')) {
+            $query->where('company_id', $request->company_id);
+        }
 
         if ($request->filled('search')) {
             $search = trim((string) $request->input('search'));
@@ -73,6 +78,8 @@ class ItemController extends Controller
                                 $sq->where('name', 'like', $like);
                             })->orWhereHas('category', function ($cq) use ($like) {
                                 $cq->where('name', 'like', $like);
+                            })->orWhereHas('company', function ($comq) use ($like) {
+                                $comq->where('name', 'like', $like);
                             })->orWhereHas('assignedUser', function ($uq) use ($like) {
                                 $uq->where('name', 'like', $like)->orWhere('email', 'like', $like);
                             })->orWhereHas('approvedBy', function ($aq) use ($like) {
@@ -96,22 +103,25 @@ class ItemController extends Controller
         }
 
         $items = $query
-            ->with(['assignedUser', 'approvedBy', 'supplier', 'category', 'floor', 'room', 'purchasedBy', 'receivedBy', 'purchase'])
+            ->with(['assignedUser', 'approvedBy', 'supplier', 'category', 'floor', 'room', 'purchasedBy', 'receivedBy', 'purchase', 'company'])
             ->orderBy('created_at', 'desc')
-            ->paginate(10)
+            ->paginate(50)
             ->withQueryString();
+
+        $companies = Company::orderBy('name')->get();
 
         if ($request->ajax()) {
             $html = view('pages.item.partials.table', compact('items'))->render();
             return response()->json(['html' => $html]);
         }
-        return view('pages.item.index', compact('items'));
+        return view('pages.item.index', compact('items', 'companies'));
     }
 
     public function showAdd()
     {
         $categories = Category::all();
         $suppliers = Supplier::all();
+        $companies = Company::all();
         $users = \App\Models\User::all();
         $floors = \App\Models\Floor::all();
         $rooms = \App\Models\Room::all();
@@ -119,7 +129,7 @@ class ItemController extends Controller
         // Get the default supplier ID
         $defaultSupplier = Supplier::where('name', 'Default Supplier')->first();
         
-        return view('pages.item.add', compact('categories', 'suppliers', 'users', 'defaultSupplier', 'floors', 'rooms'));
+        return view('pages.item.add', compact('categories', 'suppliers', 'companies', 'users', 'defaultSupplier', 'floors', 'rooms'));
     }
 
     public function assignFromPurchase($purchaseId, $itemId)
@@ -131,6 +141,7 @@ class ItemController extends Controller
         // Get required data for the form
         $categories = Category::all();
         $suppliers = Supplier::all();
+        $companies = Company::all();
         $users = \App\Models\User::all();
         $floors = \App\Models\Floor::all();
         $rooms = \App\Models\Room::all();
@@ -151,7 +162,7 @@ class ItemController extends Controller
             'purchase_item_id' => $purchaseItem->id,
         ];
         
-        return view('pages.item.add', compact('categories', 'suppliers', 'users', 'floors', 'rooms', 'prefilledData'));
+        return view('pages.item.add', compact('categories', 'suppliers', 'companies', 'users', 'floors', 'rooms', 'prefilledData'));
     }
 
     public function store(Request $request)
@@ -178,6 +189,7 @@ class ItemController extends Controller
             'floor_level' => 'required|string|max:255',
             'room_number' => 'required|string|max:255',
             'location' => 'nullable|string|max:255',
+            'company_id' => 'nullable|exists:companies,id',
             'assigned_to' => 'nullable|exists:users,id',
             'condition' => 'nullable|string|max:255',
             'images' => 'nullable|array|max:10',
@@ -356,6 +368,7 @@ class ItemController extends Controller
         $item = Item::with(['images', 'assignedUser', 'supplier', 'floor', 'room'])->find($id);
         $categories = Category::all();
         $suppliers = Supplier::all();
+        $companies = Company::all();
         $users = \App\Models\User::all();
         $floors = \App\Models\Floor::all();
         $rooms = \App\Models\Room::all();
@@ -363,7 +376,7 @@ class ItemController extends Controller
         // Get the default supplier ID for fallback
         $defaultSupplier = Supplier::where('name', 'Default Supplier')->first();
         
-        return view('pages.item.edit', compact('item', 'categories', 'suppliers', 'users', 'defaultSupplier', 'floors', 'rooms'));
+        return view('pages.item.edit', compact('item', 'categories', 'suppliers', 'companies', 'users', 'defaultSupplier', 'floors', 'rooms'));
     }
 
     public function update(Request $request, $id)
@@ -387,6 +400,7 @@ class ItemController extends Controller
             'floor_level' => 'required|string|max:255',
             'room_number' => 'required|string|max:255',
             'location' => 'nullable|string|max:255',
+            'company_id' => 'nullable|exists:companies,id',
             'assigned_to' => 'nullable|exists:users,id',
             'condition' => 'nullable|string|max:255',
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',

@@ -1,4 +1,4 @@
-@extends('layouts.app')
+﻿@extends('layouts.app')
 
 @section('content')
 @include('inc.alert')
@@ -55,6 +55,24 @@
                         <input type="text" name="name" class="form-control @error('name') is-invalid @enderror" id="name" required value="{{ old('name', $item->name) }}">
                         @error('name')
                             <div class="invalid-feedback">Item Name is required. Please enter a value.</div>
+                        @enderror
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="company_id" class="form-label">Company</label>
+                        <div class="input-group">
+                            <select name="company_id" class="form-select @error('company_id') is-invalid @enderror" id="company_id">
+                                <option value="">-- Select Company --</option>
+                                @foreach($companies as $company)
+                                    <option value="{{ $company->id }}" {{ old('company_id', $item->company_id) == $company->id ? 'selected' : '' }}>{{ $company->name }}</option>
+                                @endforeach
+                            </select>
+                            <button type="button" class="btn btn-outline-primary" id="addCompanyBtn" data-bs-toggle="modal" data-bs-target="#addCompanyModal">
+                                <i class="fas fa-plus"></i> Add New
+                            </button>
+                        </div>
+                        @error('company_id')
+                            <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
                     </div>
                     <div class="mb-3">
@@ -585,6 +603,39 @@
     </div>
 </div>
 
+<!-- Add Company Modal -->
+<div class="modal fade" id="addCompanyModal" tabindex="-1" aria-labelledby="addCompanyModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-primary text-white border-0">
+                <h5 class="modal-title fw-bold text-white" id="addCompanyModalLabel">
+                    <i class="fas fa-building me-2"></i>
+                    Add New Company
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="addCompanyForm" onsubmit="return false;">
+                <div class="modal-body">
+                    <div id="companyModalAlert" class="alert" style="display: none;"></div>
+                    
+                    <div class="mb-3">
+                        <label for="modal_company_name" class="form-label">Company Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="modal_company_name" name="name" required>
+                        <div class="invalid-feedback"></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="saveCompanyBtn">
+                        <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                        <span class="btn-text">Add Company</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <!-- Add Supplier Modal -->
 <div class="modal fade" id="addSupplierModal" tabindex="-1" aria-labelledby="addSupplierModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
@@ -956,7 +1007,7 @@
             const depreciationNote = document.getElementById('depreciation-note');
             if (depreciationNote) {
                 if (value > 0 && rate > 0) {
-                    depreciationNote.textContent = `Depreciation cost will be automatically calculated: ৳${depreciationCost.toFixed(2)}`;
+                    depreciationNote.textContent = `Depreciation cost will be automatically calculated: à§³${depreciationCost.toFixed(2)}`;
                     depreciationNote.style.display = 'block';
                 } else {
                     depreciationNote.style.display = 'none';
@@ -1182,7 +1233,7 @@
             imageInput.dispatchEvent(new Event('change'));
         }
 
-        // Camera capture → merge into existing multi-file input
+        // Camera capture â†’ merge into existing multi-file input
         if (cameraInput) {
             cameraInput.addEventListener('change', function (e) {
                 addFilesToImagesInput(e.target.files);
@@ -1261,7 +1312,7 @@
                     removeBtn.className = 'btn btn-sm btn-danger position-absolute';
                     removeBtn.style.top = '5px';
                     removeBtn.style.right = '5px';
-                    removeBtn.innerHTML = '×';
+                    removeBtn.innerHTML = 'Ã—';
                     removeBtn.onclick = function() {
                         removeImageFromPreview(index);
                     };
@@ -1305,6 +1356,132 @@
         }
     });
 
+
+    // Company Modal functionality
+    const addCompanyForm = document.getElementById('addCompanyForm');
+    const companyModal = document.getElementById('addCompanyModal');
+    const companySelect = document.getElementById('company_id');
+    const saveCompanyBtn = document.getElementById('saveCompanyBtn');
+    const companyModalAlert = document.getElementById('companyModalAlert');
+
+    // Reset company modal form when modal is closed
+    if(companyModal){
+        companyModal.addEventListener('hidden.bs.modal', function() {
+            addCompanyForm.reset();
+            addCompanyForm.querySelectorAll('.is-invalid').forEach(field => {
+                field.classList.remove('is-invalid');
+            });
+            addCompanyForm.querySelectorAll('.invalid-feedback').forEach(feedback => {
+                feedback.textContent = '';
+            });
+            companyModalAlert.style.display = 'none';
+        });
+    }
+
+    // Handle company form submission
+    function handleCompanySubmit() {
+        // Show loading state
+        const spinner = saveCompanyBtn.querySelector('.spinner-border');
+        const btnText = saveCompanyBtn.querySelector('.btn-text');
+        spinner.classList.remove('d-none');
+        btnText.textContent = 'Adding...';
+        saveCompanyBtn.disabled = true;
+
+        // Clear previous errors
+        addCompanyForm.querySelectorAll('.is-invalid').forEach(field => {
+            field.classList.remove('is-invalid');
+        });
+        addCompanyForm.querySelectorAll('.invalid-feedback').forEach(feedback => {
+            feedback.textContent = '';
+        });
+        companyModalAlert.style.display = 'none';
+
+        // Prepare form data
+        const formData = new FormData(addCompanyForm);
+        formData.append('_token', document.querySelector('meta[name="csrf-token"]').getAttribute('content'));
+
+        // Submit via AJAX
+        fetch('{{ route("company.storeAjax") }}', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                'Accept': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Add new company to dropdown
+                const newOption = document.createElement('option');
+                newOption.value = data.company.id;
+                newOption.textContent = data.company.name;
+                companySelect.appendChild(newOption);
+                
+                // Select the new company
+                companySelect.value = data.company.id;
+                
+                // Show success message
+                companyModalAlert.className = 'alert alert-success';
+                companyModalAlert.textContent = 'Company added successfully!';
+                companyModalAlert.style.display = 'block';
+                
+                // Close modal after a short delay
+                setTimeout(() => {
+                    const modal = bootstrap.Modal.getInstance(companyModal);
+                    modal.hide();
+                }, 1500);
+            } else {
+                // Handle validation errors
+                if (data.errors) {
+                    Object.keys(data.errors).forEach(field => {
+                        const input = addCompanyForm.querySelector(`[name="${field}"]`);
+                        if (input) {
+                            input.classList.add('is-invalid');
+                            const feedback = input.parentElement.querySelector('.invalid-feedback');
+                            if (feedback) {
+                                feedback.textContent = data.errors[field][0];
+                            }
+                        }
+                    });
+                } else {
+                    // Show general error
+                    companyModalAlert.className = 'alert alert-danger';
+                    companyModalAlert.textContent = data.message || 'An error occurred while adding the company.';
+                    companyModalAlert.style.display = 'block';
+                }
+            }
+        })
+        .catch(error => {
+            companyModalAlert.className = 'alert alert-danger';
+            companyModalAlert.textContent = 'An error occurred while adding the company: ' + error.message;
+            companyModalAlert.style.display = 'block';
+        })
+        .finally(() => {
+            // Reset loading state
+            spinner.classList.add('d-none');
+            btnText.textContent = 'Add Company';
+            saveCompanyBtn.disabled = false;
+        });
+    }
+
+    // Handle form submission
+    if(addCompanyForm){
+        addCompanyForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            handleCompanySubmit();
+        });
+    }
+
+    // Handle button click
+    if(saveCompanyBtn){
+        saveCompanyBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            handleCompanySubmit();
+        });
+    }
 
     // User Modal functionality
     const addUserForm = document.getElementById('addUserForm');
@@ -1780,202 +1957,4 @@
     }
 
 </script>
-
-<!-- Add Supplier Modal -->
-<div class="modal fade" id="addSupplierModal" tabindex="-1" aria-labelledby="addSupplierModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content border-0 shadow-lg">
-            <div class="modal-header bg-success text-white border-0">
-                <h5 class="modal-title fw-bold text-white" id="addSupplierModalLabel">
-                    <i class="fas fa-plus-circle me-2"></i>
-                    Add New Supplier
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form id="addSupplierForm" onsubmit="return false;">
-                <div class="modal-body">
-                    <div id="supplierModalAlert" class="alert" style="display: none;"></div>
-                    
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="modal_supplier_name" class="form-label">Brand Name <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="modal_supplier_name" name="name" required>
-                                <div class="invalid-feedback"></div>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="modal_supplier_incharge_name" class="form-label">Person in Charge</label>
-                                <input type="text" class="form-control" id="modal_supplier_incharge_name" name="incharge_name">
-                                <div class="invalid-feedback"></div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="modal_supplier_contact_number" class="form-label">Contact Number <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="modal_supplier_contact_number" name="contact_number" required>
-                                <div class="invalid-feedback"></div>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="modal_supplier_email" class="form-label">Email</label>
-                                <input type="email" class="form-control" id="modal_supplier_email" name="email">
-                                <div class="invalid-feedback"></div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="modal_supplier_address" class="form-label">Address</label>
-                        <textarea class="form-control" id="modal_supplier_address" name="address" rows="2"></textarea>
-                        <div class="invalid-feedback"></div>
-                    </div>
-                    
-                    <div class="row">
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="modal_supplier_tax_number" class="form-label">Tax Number</label>
-                                <input type="text" class="form-control" id="modal_supplier_tax_number" name="tax_number">
-                                <div class="invalid-feedback"></div>
-                            </div>
-                        </div>
-                        <div class="col-md-6">
-                            <div class="mb-3">
-                                <label for="modal_supplier_payment_terms" class="form-label">Payment Terms</label>
-                                <input type="text" class="form-control" id="modal_supplier_payment_terms" name="payment_terms">
-                                <div class="invalid-feedback"></div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="modal_supplier_notes" class="form-label">Notes</label>
-                        <textarea class="form-control" id="modal_supplier_notes" name="notes" rows="2"></textarea>
-                        <div class="invalid-feedback"></div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" id="saveSupplierBtn">
-                        <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
-                        <span class="btn-text">Add Supplier</span>
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- Add Floor Modal -->
-<div class="modal fade" id="addFloorModal" tabindex="-1" aria-labelledby="addFloorModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content border-0 shadow-lg">
-            <div class="modal-header bg-success text-white border-0">
-                <h5 class="modal-title fw-bold text-white" id="addFloorModalLabel">
-                    <i class="fas fa-building me-2"></i>
-                    Add New Floor
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form id="addFloorForm" onsubmit="return false;">
-                <div class="modal-body">
-                    <div id="floorModalAlert" class="alert" style="display: none;"></div>
-                    
-                    <div class="mb-3">
-                        <label for="modal_floor_name" class="form-label">Floor Name <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="modal_floor_name" name="name" required>
-                        <div class="invalid-feedback"></div>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="modal_floor_serial_number" class="form-label">Serial Number</label>
-                        <input type="text" class="form-control" id="modal_floor_serial_number" value="Auto-generated" readonly>
-                        <div class="form-text">Serial number will be automatically generated when the floor is created.</div>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="modal_floor_description" class="form-label">Description</label>
-                        <textarea class="form-control" id="modal_floor_description" name="description" rows="3"></textarea>
-                        <div class="invalid-feedback"></div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" id="saveFloorBtn">
-                        <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
-                        <span class="btn-text">Add Floor</span>
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- Add Room Modal -->
-<div class="modal fade" id="addRoomModal" tabindex="-1" aria-labelledby="addRoomModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content border-0 shadow-lg">
-            <div class="modal-header bg-success text-white border-0">
-                <h5 class="modal-title fw-bold text-white" id="addRoomModalLabel">
-                    <i class="fas fa-door-open me-2"></i>
-                    Add New Room
-                </h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form id="addRoomForm" onsubmit="return false;">
-                <div class="modal-body">
-                    <div id="roomModalAlert" class="alert" style="display: none;"></div>
-                    
-                    <div class="mb-3">
-                        <label for="modal_room_floor_id" class="form-label">Floor <span class="text-danger">*</span></label>
-                        <select class="form-select" id="modal_room_floor_id" name="floor_id" required>
-                            <option value="">-- Select Floor --</option>
-                            @foreach($floors as $floor)
-                                <option value="{{ $floor->id }}">{{ $floor->name }} ({{ $floor->serial_number }})</option>
-                            @endforeach
-                        </select>
-                        <div class="invalid-feedback"></div>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="modal_room_name" class="form-label">Room Name <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="modal_room_name" name="name" required>
-                        <div class="invalid-feedback"></div>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="modal_room_status" class="form-label">Status <span class="text-danger">*</span></label>
-                        <select class="form-select" id="modal_room_status" name="status" required>
-                            <option value="active">Active</option>
-                            <option value="inactive">Inactive</option>
-                            <option value="maintenance">Maintenance</option>
-                        </select>
-                        <div class="invalid-feedback"></div>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <label for="modal_room_description" class="form-label">Description</label>
-                        <textarea class="form-control" id="modal_room_description" name="description" rows="3"></textarea>
-                        <div class="invalid-feedback"></div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary" id="saveRoomBtn">
-                        <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
-                        <span class="btn-text">Add Room</span>
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-@endpush
-@endsection
 

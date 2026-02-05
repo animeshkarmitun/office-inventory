@@ -63,6 +63,24 @@
                             <div class="invalid-feedback">Item Name is required. Please enter a value.</div>
                         @enderror
                     </div>
+                    
+                    <div class="mb-3">
+                        <label for="company_id" class="form-label">Company</label>
+                        <div class="input-group">
+                            <select name="company_id" class="form-select @error('company_id') is-invalid @enderror" id="company_id">
+                                <option value="">-- Select Company --</option>
+                                @foreach($companies as $company)
+                                    <option value="{{ $company->id }}" {{ old('company_id', $prefilledData['company_id'] ?? '') == $company->id ? 'selected' : '' }}>{{ $company->name }}</option>
+                                @endforeach
+                            </select>
+                            <button type="button" class="btn btn-outline-primary" id="addCompanyBtn" data-bs-toggle="modal" data-bs-target="#addCompanyModal">
+                                <i class="fas fa-plus"></i> Add New
+                            </button>
+                        </div>
+                        @error('company_id')
+                            <div class="invalid-feedback">{{ $message }}</div>
+                        @enderror
+                    </div>
                     <div class="mb-3">
                         <label for="serial_number" class="form-label">Serial Number</label>
                         <input type="text" name="serial_number" class="form-control @error('serial_number') is-invalid @enderror" id="serial_number" value="{{ old('serial_number') }}" readonly placeholder="Will be auto-generated">
@@ -478,6 +496,39 @@
                 </div>
             </div>
         </form>
+    </div>
+</div>
+
+<!-- Add Company Modal -->
+<div class="modal fade" id="addCompanyModal" tabindex="-1" aria-labelledby="addCompanyModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-primary text-white border-0">
+                <h5 class="modal-title fw-bold text-white" id="addCompanyModalLabel">
+                    <i class="fas fa-building me-2"></i>
+                    Add New Company
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="addCompanyForm" onsubmit="return false;">
+                <div class="modal-body">
+                    <div id="companyModalAlert" class="alert" style="display: none;"></div>
+                    
+                    <div class="mb-3">
+                        <label for="modal_company_name" class="form-label">Company Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="modal_company_name" name="name" required>
+                        <div class="invalid-feedback"></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="saveCompanyBtn">
+                        <span class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                        <span class="btn-text">Add Company</span>
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 
@@ -1054,6 +1105,126 @@
 
         // Initialize room dropdown (start with no rooms until floor is selected)
         roomSelect.innerHTML = '<option value="">-- Select Floor First --</option>';
+
+        // Company Modal functionality
+        const addCompanyForm = document.getElementById('addCompanyForm');
+        const companyModal = document.getElementById('addCompanyModal');
+        const companySelect = document.getElementById('company_id');
+        const saveCompanyBtn = document.getElementById('saveCompanyBtn');
+        const companyModalAlert = document.getElementById('companyModalAlert');
+
+        // Reset company modal form when modal is closed
+        companyModal.addEventListener('hidden.bs.modal', function() {
+            addCompanyForm.reset();
+            addCompanyForm.querySelectorAll('.is-invalid').forEach(field => {
+                field.classList.remove('is-invalid');
+            });
+            addCompanyForm.querySelectorAll('.invalid-feedback').forEach(feedback => {
+                feedback.textContent = '';
+            });
+            companyModalAlert.style.display = 'none';
+        });
+
+        // Handle company form submission
+        function handleCompanySubmit() {
+            // Show loading state
+            const spinner = saveCompanyBtn.querySelector('.spinner-border');
+            const btnText = saveCompanyBtn.querySelector('.btn-text');
+            spinner.classList.remove('d-none');
+            btnText.textContent = 'Adding...';
+            saveCompanyBtn.disabled = true;
+
+            // Clear previous errors
+            addCompanyForm.querySelectorAll('.is-invalid').forEach(field => {
+                field.classList.remove('is-invalid');
+            });
+            addCompanyForm.querySelectorAll('.invalid-feedback').forEach(feedback => {
+                feedback.textContent = '';
+            });
+            companyModalAlert.style.display = 'none';
+
+            // Prepare form data
+            const formData = new FormData(addCompanyForm);
+            formData.append('_token', document.querySelector('meta[name="csrf-token"]').getAttribute('content'));
+
+            // Submit via AJAX
+            fetch('{{ route("company.storeAjax") }}', {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                    'Accept': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Add new company to dropdown
+                    const newOption = document.createElement('option');
+                    newOption.value = data.company.id;
+                    newOption.textContent = data.company.name;
+                    companySelect.appendChild(newOption);
+                    
+                    // Select the new company
+                    companySelect.value = data.company.id;
+                    
+                    // Show success message
+                    companyModalAlert.className = 'alert alert-success';
+                    companyModalAlert.textContent = 'Company added successfully!';
+                    companyModalAlert.style.display = 'block';
+                    
+                    // Close modal after a short delay
+                    setTimeout(() => {
+                        const modal = bootstrap.Modal.getInstance(companyModal);
+                        modal.hide();
+                    }, 1500);
+                } else {
+                    // Handle validation errors
+                    if (data.errors) {
+                        Object.keys(data.errors).forEach(field => {
+                            const input = addCompanyForm.querySelector(`[name="${field}"]`);
+                            if (input) {
+                                input.classList.add('is-invalid');
+                                const feedback = input.parentElement.querySelector('.invalid-feedback');
+                                if (feedback) {
+                                    feedback.textContent = data.errors[field][0];
+                                }
+                            }
+                        });
+                    } else {
+                        // Show general error
+                        companyModalAlert.className = 'alert alert-danger';
+                        companyModalAlert.textContent = data.message || 'An error occurred while adding the company.';
+                        companyModalAlert.style.display = 'block';
+                    }
+                }
+            })
+            .catch(error => {
+                companyModalAlert.className = 'alert alert-danger';
+                companyModalAlert.textContent = 'An error occurred while adding the company: ' + error.message;
+                companyModalAlert.style.display = 'block';
+            })
+            .finally(() => {
+                // Reset loading state
+                spinner.classList.add('d-none');
+                btnText.textContent = 'Add Company';
+                saveCompanyBtn.disabled = false;
+            });
+        }
+
+        // Handle form submission
+        addCompanyForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            handleCompanySubmit();
+        });
+
+        // Handle button click
+        saveCompanyBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            handleCompanySubmit();
+        });
 
         // Supplier Modal functionality
         const addSupplierForm = document.getElementById('addSupplierForm');

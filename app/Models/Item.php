@@ -46,8 +46,10 @@ class Item extends Model
         'quantity',
         'image',
         'purchase_id',
+        'purchase_id',
         'floor_id',
-        'room_id'
+        'room_id',
+        'company_id',
     ];
 
     protected $casts = [
@@ -152,6 +154,11 @@ class Item extends Model
     public function category()
     {
         return $this->belongsTo(Category::class);
+    }
+
+    public function company()
+    {
+        return $this->belongsTo(Company::class);
     }
 
     public function supplier()

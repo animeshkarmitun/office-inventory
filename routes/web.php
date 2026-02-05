@@ -65,6 +65,9 @@ Route::middleware('auth')->group(function () {
     Route::post('room/store-ajax', [RoomController::class, 'storeAjax'])->name('room.storeAjax');
     Route::get('room/by-floor/{floorId}', [RoomController::class, 'getByFloor'])->name('room.by-floor');
 
+    // Company Management
+    Route::post('company/store-ajax', [\App\Http\Controllers\CompanyController::class, 'storeAjax'])->name('company.storeAjax');
+
     // Item
     Route::controller(ItemController::class)->prefix('item')->name('item')->group(function () {
         Route::get('/', 'index');
@@ -147,7 +150,16 @@ Route::middleware('auth')->group(function () {
 // Admin routes
 Route::middleware(['auth', 'role:admin'])->group(function () {
     Route::get('/admin/dashboard', [DashboardController::class, 'adminDashboard'])->name('admin.dashboard');
-    // Add more admin-only routes here
+    
+    // Company Management (Admin Only)
+    Route::controller(\App\Http\Controllers\CompanyController::class)->prefix('company')->name('company')->group(function () {
+        Route::get('/', 'index');
+        // Route::get('/add', 'showAdd')->name('.showAdd'); // Using modal for add, but if we need page later
+        // Route::post('/add', 'store')->name('.store');
+        Route::get('/{id}/edit', 'showEdit')->name('.showEdit');
+        Route::post('/{id}/edit', 'update')->name('.update');
+        Route::get('/{id}/delete', 'destroy')->name('.destroy');
+    });
 });
 
 // Asset Manager routes
