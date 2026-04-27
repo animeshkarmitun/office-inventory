@@ -55,8 +55,8 @@ p, label, input, button, th, td {
 }
 
 /* Section spacing */
-section, .container, .mb-4, .py-4 {
-    margin-bottom: 2rem !important;
+section, .container, .mb-4 {
+    margin-bottom: 2rem;
 }
 
 /* Table improvements */

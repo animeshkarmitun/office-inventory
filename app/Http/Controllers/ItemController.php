@@ -406,7 +406,9 @@ class ItemController extends Controller
             'image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:2048',
             'images' => 'nullable|array|max:10',
             'images.*' => 'image|mimes:jpeg,png,jpg,gif,webp|max:10240',
-            'camera_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:10240'
+            'camera_image' => 'nullable|image|mimes:jpeg,png,jpg,gif,webp|max:10240',
+            'tracking_mode' => 'required|in:bulk,individual',
+            'quantity' => 'required_if:tracking_mode,bulk|nullable|integer|min:1',
         ]);
 
         $item = Item::findOrFail($id);

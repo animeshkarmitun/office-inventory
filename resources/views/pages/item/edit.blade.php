@@ -1,4 +1,4 @@
-﻿@extends('layouts.app')
+@extends('layouts.app')
 
 @section('content')
 @include('inc.alert')
@@ -310,6 +310,66 @@
             </div>
 
             <div class="row g-4 mt-2">
+                <div class="col-lg-6">
+                    <div class="card border-0 bg-light">
+                        <div class="card-header bg-transparent border-0 pb-0">
+                            <h4 class="fw-bold text-dark mb-0 d-flex align-items-center">
+                                <i class="fas fa-tags me-2"></i>
+                                Tracking & Quantity
+                            </h4>
+                        </div>
+                        <div class="card-body pt-3">
+                            <div class="mb-3">
+                                <label for="tracking_mode" class="form-label fw-semibold">Item Tracking Mode <span class="text-danger">*</span></label>
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="tracking_mode" id="individual_mode" value="individual" {{ old('tracking_mode', $item->tracking_mode) == 'individual' ? 'checked' : '' }}>
+                                            <label class="form-check-label fw-semibold" for="individual_mode">
+                                                <i class="fas fa-cube me-2 text-primary"></i>Individual Item
+                                            </label>
+                                            <small class="form-text text-muted d-block">This item is tracked individually</small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="tracking_mode" id="bulk_mode" value="bulk" {{ old('tracking_mode', $item->tracking_mode) == 'bulk' ? 'checked' : '' }}>
+                                            <label class="form-check-label fw-semibold" for="bulk_mode">
+                                                <i class="fas fa-boxes me-2 text-success"></i>Bulk Item
+                                            </label>
+                                            <small class="form-text text-muted d-block">This item is tracked in bulk with a quantity</small>
+                                        </div>
+                                    </div>
+                                </div>
+                                @error('tracking_mode')
+                                    <div class="invalid-feedback text-danger d-block">{{ $message }}</div>
+                                @enderror
+                            </div>
+                            
+                            <div class="mb-3" id="individual-count-group" style="{{ old('tracking_mode', $item->tracking_mode) == 'bulk' ? 'display: none;' : '' }}">
+                                <label for="quantity_display" class="form-label fw-semibold">
+                                    <i class="fas fa-hashtag me-2 text-primary"></i>Quantity
+                                </label>
+                                <input type="number" id="quantity_display" class="form-control" value="1" readonly disabled>
+                                <small class="form-text text-muted">Individual items always have a quantity of 1</small>
+                            </div>
+                            
+                            <div class="mb-3" id="bulk-quantity-group" style="{{ old('tracking_mode', $item->tracking_mode) == 'individual' ? 'display: none;' : '' }}">
+                                <label for="quantity" class="form-label fw-semibold">
+                                    <i class="fas fa-hashtag me-2 text-success"></i>Total Quantity <span class="text-danger">*</span>
+                                </label>
+                                <input type="number" name="quantity" id="quantity" class="form-control @error('quantity') is-invalid @enderror" min="1" value="{{ old('quantity', $item->quantity) }}">
+                                <small class="form-text text-muted">Update the total quantity for this bulk item</small>
+                                @error('quantity')
+                                    <div class="invalid-feedback text-danger d-block">{{ $message }}</div>
+                                @enderror
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row g-4 mt-2">
                 <div class="col-12">
                     <div class="card border-0 bg-light">
                         <div class="card-header bg-transparent border-0 pb-0">
@@ -326,20 +386,17 @@
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
                     </div>
-                </div>
-            </div>
-
                     <div class="mb-3">
-                                <label for="remarks" class="form-label fw-semibold">Remarks</label>
-                                <textarea name="remarks" class="form-control @error('remarks') is-invalid @enderror" id="remarks" rows="3" placeholder="Enter any additional remarks...">{{ old('remarks', $item->remarks) }}</textarea>
+                        <label for="remarks" class="form-label fw-semibold">Remarks</label>
+                        <textarea name="remarks" class="form-control @error('remarks') is-invalid @enderror" id="remarks" rows="3" placeholder="Enter any additional remarks...">{{ old('remarks', $item->remarks) }}</textarea>
                         @error('remarks')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
 
             <div class="row g-4 mt-2">
                 <div class="col-12">
@@ -940,6 +997,56 @@
         transform: translateY(-1px);
     }
     
+    /* Radio button styling */
+    .form-check-input:checked {
+        background-color: #0d6efd;
+        border-color: #0d6efd;
+    }
+    
+    .form-check-input:focus {
+        border-color: #86b7fe;
+        outline: 0;
+        box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    }
+    
+    .form-check {
+        padding: 1rem;
+        border: 2px solid #e9ecef;
+        border-radius: 12px;
+        transition: all 0.3s ease;
+        background: #fff;
+        margin-bottom: 0.5rem;
+    }
+    
+    .form-check:hover {
+        border-color: #0d6efd;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(13, 110, 253, 0.15);
+    }
+    
+    .form-check-input:checked + .form-check-label {
+        color: #0d6efd;
+    }
+    
+    /* Quantity group styling */
+    #individual-count-group, #bulk-quantity-group {
+        background: #f8f9fa;
+        padding: 1.5rem;
+        border-radius: 12px;
+        border: 2px solid #e9ecef;
+        transition: all 0.3s ease;
+    }
+    
+    #individual-count-group {
+        border-color: #0d6efd;
+        background: linear-gradient(135deg, #f8f9ff 0%, #e3f2fd 100%);
+    }
+    
+    #bulk-quantity-group {
+        border-color: #198754;
+        background: linear-gradient(135deg, #f0fff4 0%, #e8f5e8 100%);
+    }
+
     .btn {
         border-radius: 8px;
         font-weight: 500;
@@ -995,6 +1102,40 @@
 @push('scripts')
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        // Tracking mode toggle logic
+        const individualMode = document.getElementById('individual_mode');
+        const bulkMode = document.getElementById('bulk_mode');
+        const quantityField = document.getElementById('quantity');
+        const individualCountGroup = document.getElementById('individual-count-group');
+        const bulkQuantityGroup = document.getElementById('bulk-quantity-group');
+        
+        function toggleTrackingFields() {
+            if (bulkMode.checked) {
+                // Show bulk quantity field, hide individual count
+                individualCountGroup.style.display = 'none';
+                bulkQuantityGroup.style.display = 'block';
+                if (quantityField) {
+                    quantityField.disabled = false;
+                    quantityField.required = true;
+                }
+            } else {
+                // Show individual count field, hide bulk quantity
+                individualCountGroup.style.display = 'block';
+                bulkQuantityGroup.style.display = 'none';
+                if (quantityField) {
+                    quantityField.disabled = true;
+                    quantityField.required = false;
+                }
+            }
+        }
+        
+        if (individualMode && bulkMode) {
+            individualMode.addEventListener('change', toggleTrackingFields);
+            bulkMode.addEventListener('change', toggleTrackingFields);
+            toggleTrackingFields();
+        }
+
+
         // Auto-calculate depreciation cost
         const valueField = document.getElementById('value');
         const depreciationRateField = document.getElementById('depreciation_rate');
@@ -1955,6 +2096,9 @@
             handleDesignationSubmit();
         });
     }
-
 </script>
+@endpush
+
+</div>
+@endsection
 

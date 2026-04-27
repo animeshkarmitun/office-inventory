@@ -356,20 +356,17 @@
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
                     </div>
-                </div>
-            </div>
-
                     <div class="mb-3">
-                                <label for="remarks" class="form-label fw-semibold">Remarks</label>
-                                <textarea name="remarks" class="form-control @error('remarks') is-invalid @enderror" id="remarks" rows="3" placeholder="Enter any additional remarks...">{{ old('remarks') }}</textarea>
+                        <label for="remarks" class="form-label fw-semibold">Remarks</label>
+                        <textarea name="remarks" class="form-control @error('remarks') is-invalid @enderror" id="remarks" rows="3" placeholder="Enter any additional remarks...">{{ old('remarks') }}</textarea>
                         @error('remarks')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
 
             <div class="row g-4 mt-2">
                 <div class="col-lg-6">
@@ -2132,4 +2129,5 @@
     });
 </script>
 @endpush
+</div>
 @endsection
