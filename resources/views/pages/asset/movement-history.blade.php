@@ -1,115 +1,103 @@
 @extends('layouts.app')
 
 @section('content')
-@include('inc.alert')
-<div class="container">
-    <h1 class="mb-4" style="font-size:2.2rem;font-weight:600;">
-        Movement History for 
-        <span class="product-name-highlight">{{ $item->name }}</span>
-    </h1>
-    <a href="{{ route('item') }}" class="btn btn-custom mt-3 mb-4">Back to Assets</a>
+<div class="container-fluid py-4">
+    @include('inc.alert')
+    
+    <div class="page-header d-flex justify-content-between align-items-center">
+        <div>
+            <h2 class="page-title">Movement History</h2>
+            <p class="page-subtitle">Tracking audit trail for: <span class="text-primary fw-bold">{{ $item->name }}</span></p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ route('asset.movement.create', $item->id) }}" class="btn btn-primary rounded-3 px-4 shadow-sm">
+                <i class="fas fa-exchange-alt me-2"></i> Move Asset
+            </a>
+            <a href="{{ route('item') }}" class="btn btn-outline-secondary rounded-3 px-3 shadow-sm">
+                <i class="fas fa-arrow-left me-2"></i> Back to Assets
+            </a>
+        </div>
+    </div>
 
-    <table class="table custom-table mt-3">
-        <thead>
-            <tr>
-                <th scope="col">Date</th>
-                <th scope="col">Movement Type</th>
-                <th scope="col">From User</th>
-                <th scope="col">To User</th>
-                <th scope="col">From Location</th>
-                <th scope="col">To Location</th>
-                <th scope="col">Notes</th>
-            </tr>
-        </thead>
-        <tbody>
-            @forelse ($item->movements as $movement)
-            <tr>
-                <td>{{ $movement->created_at->format('Y-m-d H:i') }}</td>
-                <td>
-                    <span class="badge 
-                        @if($movement->movement_type === 'assignment') bg-primary
-                        @elseif($movement->movement_type === 'transfer') bg-warning
-                        @elseif($movement->movement_type === 'location_change') bg-info
-                        @elseif($movement->movement_type === 'return') bg-success
-                        @elseif($movement->movement_type === 'maintenance') bg-danger
-                        @else bg-secondary
-                        @endif text-white">
-                        {{ ucfirst(str_replace('_', ' ', $movement->movement_type)) }}
-                    </span>
-                </td>
-                <td>{{ $movement->fromUser->name ?? 'N/A' }}</td>
-                <td>{{ $movement->toUser->name ?? 'N/A' }}</td>
-                <td>{!! $movement->from_location ?? 'N/A' !!}</td>
-                <td>{!! $movement->to_location ?? 'N/A' !!}</td>
-                <td>{{ $movement->notes ?? 'N/A' }}</td>
-            </tr>
-            @empty
-            <tr>
-                <td colspan="7" class="text-center text-muted py-4">No movement history found for this asset.</td>
-            </tr>
-            @endforelse
-        </tbody>
-    </table>
+    <div class="card card-table shadow-sm border-0 mt-4">
+        <div class="table-responsive">
+            <table class="table table-hover align-items-center">
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th class="sortable {{ request('sort') == 'created_at' ? (request('direction') == 'asc' ? 'asc' : 'desc') : '' }}" 
+                            onclick="window.location.href='{{ request()->fullUrlWithQuery(['sort' => 'created_at', 'direction' => request('direction') == 'asc' ? 'desc' : 'asc']) }}'">
+                            Date & Time
+                        </th>
+                        <th class="sortable {{ request('sort') == 'movement_type' ? (request('direction') == 'asc' ? 'asc' : 'desc') : '' }}" 
+                            onclick="window.location.href='{{ request()->fullUrlWithQuery(['sort' => 'movement_type', 'direction' => request('direction') == 'asc' ? 'desc' : 'asc']) }}'">
+                            Type
+                        </th>
+                        <th>From User</th>
+                        <th>To User</th>
+                        <th class="sortable {{ request('sort') == 'from_location' ? (request('direction') == 'asc' ? 'asc' : 'desc') : '' }}" 
+                            onclick="window.location.href='{{ request()->fullUrlWithQuery(['sort' => 'from_location', 'direction' => request('direction') == 'asc' ? 'desc' : 'asc']) }}'">
+                            From Location
+                        </th>
+                        <th class="sortable {{ request('sort') == 'to_location' ? (request('direction') == 'asc' ? 'asc' : 'desc') : '' }}" 
+                            onclick="window.location.href='{{ request()->fullUrlWithQuery(['sort' => 'to_location', 'direction' => request('direction') == 'asc' ? 'desc' : 'asc']) }}'">
+                            To Location
+                        </th>
+                        <th>Moved By</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse ($movements as $movement)
+                    <tr>
+                        <td><span class="text-xs font-weight-bold">{{ ($movements->currentPage() - 1) * $movements->perPage() + $loop->iteration }}</span></td>
+                        <td><span class="text-sm">{{ $movement->created_at->format('d M, Y H:i') }}</span></td>
+                        <td>
+                            <span class="badge 
+                                @if($movement->movement_type === 'assignment') bg-primary-soft text-primary
+                                @elseif($movement->movement_type === 'transfer') bg-warning-soft text-warning
+                                @elseif($movement->movement_type === 'location_change') bg-info-soft text-info
+                                @elseif($movement->movement_type === 'return') bg-success-soft text-success
+                                @elseif($movement->movement_type === 'maintenance') bg-danger-soft text-danger
+                                @else bg-secondary-soft text-secondary
+                                @endif px-3">
+                                {{ ucfirst(str_replace('_', ' ', $movement->movement_type)) }}
+                            </span>
+                        </td>
+                        <td><span class="text-sm">{{ $movement->fromUser->name ?? 'N/A' }}</span></td>
+                        <td><span class="text-sm">{{ $movement->toUser->name ?? 'N/A' }}</span></td>
+                        <td><span class="text-sm text-muted">{!! $movement->from_location ?? 'N/A' !!}</span></td>
+                        <td><span class="text-sm fw-bold">{!! $movement->to_location ?? 'N/A' !!}</span></td>
+                        <td><span class="text-xs">{{ $movement->movedBy->name ?? 'System' }}</span></td>
+                        <td><span class="text-xs text-muted">{{ Str::limit($movement->notes, 30) }}</span></td>
+                    </tr>
+                    @empty
+                    <tr>
+                        <td colspan="9" class="text-center py-5">
+                            <p class="text-muted mb-0">No movement history found for this asset.</p>
+                        </td>
+                    </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+        @if (method_exists($movements, 'links'))
+            <div class="px-4 py-3 border-top">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="text-muted text-sm">Showing {{ $movements->firstItem() ?? 0 }} to {{ $movements->lastItem() ?? 0 }} of {{ $movements->total() }} results</span>
+                    {!! $movements->links() !!}
+                </div>
+            </div>
+        @endif
+    </div>
 </div>
-@endsection
 
-@push('styles')
 <style>
-    .product-name-highlight {
-        color: #1976d2;
-        background: #e3f0fc;
-        padding: 0.2em 0.7em;
-        border-radius: 1em;
-        font-size: 1.15em;
-        font-weight: 700;
-        letter-spacing: 0.5px;
-        box-shadow: 0 1px 4px rgba(25, 118, 210, 0.07);
-        display: inline-block;
-        margin-left: 0.3em;
-    }
-    .custom-table {
-        border-radius: 12px;
-        overflow: hidden;
-        background: #fff;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.03);
-    }
-    .custom-table th {
-        background: #f5f7fa;
-        color: #333;
-        font-weight: 600;
-        border-bottom: 2px solid #e3e6ea;
-        vertical-align: middle;
-    }
-    .custom-table td {
-        vertical-align: middle;
-        border-top: 1px solid #e3e6ea;
-        padding: 0.75rem 1rem;
-    }
-    .custom-table tbody tr:nth-child(even) {
-        background: #f8fafc;
-    }
-    .custom-table tbody tr:nth-child(odd) {
-        background: #fff;
-    }
-    .btn-custom {
-        background: #1976d2;
-        color: #fff;
-        border-radius: 24px;
-        padding: 0.5em 1.5em;
-        font-weight: 500;
-        border: none;
-        transition: background 0.2s, box-shadow 0.2s;
-        box-shadow: 0 2px 8px rgba(25, 118, 210, 0.08);
-    }
-    .btn-custom:hover, .btn-custom:focus {
-        background: #1256a3;
-        color: #fff;
-        box-shadow: 0 4px 16px rgba(25, 118, 210, 0.13);
-        text-decoration: none;
-    }
-    .container {
-        padding-top: 2.5rem;
-        padding-bottom: 2.5rem;
-    }
+    .bg-primary-soft { background-color: rgba(94, 114, 228, 0.1); }
+    .bg-warning-soft { background-color: rgba(fb, 99, 64, 0.1); }
+    .bg-info-soft { background-color: rgba(17, 201, 240, 0.1); }
+    .bg-success-soft { background-color: rgba(45, 206, 137, 0.1); }
+    .bg-danger-soft { background-color: rgba(245, 54, 92, 0.1); }
+    .bg-secondary-soft { background-color: rgba(136, 152, 170, 0.1); }
 </style>
-@endpush 
+@endsection

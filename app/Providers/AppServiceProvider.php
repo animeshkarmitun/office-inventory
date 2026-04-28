@@ -41,5 +41,17 @@ class AppServiceProvider extends ServiceProvider
     {
         // Use custom pagination view
         \Illuminate\Pagination\Paginator::defaultView('vendor.pagination.bootstrap-4');
+
+        // Share settings with all views
+        if (! $this->app->runningInConsole()) {
+            try {
+                if (\Schema::hasTable('settings')) {
+                    $settings = \App\Models\Setting::all()->pluck('value', 'key')->toArray();
+                    view()->share('settings', $settings);
+                }
+            } catch (\Exception $e) {
+                // Fail silently if database is not ready
+            }
+        }
     }
 }

@@ -14,9 +14,19 @@ class DepartmentController extends Controller
         $this->middleware('role:super_admin,admin');
     }
 
-    public function index()
+    public function index(Request $request)
     {
-        $departments = Department::with('designations')->orderBy('location', 'ASC')->get();
+        $query = Department::with('designations');
+        
+        $sort = $request->input('sort', 'name');
+        $direction = $request->input('direction', 'asc');
+        
+        $allowedSorts = ['id', 'name', 'location'];
+        if (!in_array($sort, $allowedSorts)) {
+            $sort = 'name';
+        }
+
+        $departments = $query->orderBy($sort, $direction)->paginate(10)->withQueryString();
         return view('pages.department.index', compact('departments'));
     }
 
@@ -76,7 +86,16 @@ class DepartmentController extends Controller
             $query->where('department_id', $request->department);
         }
         
-        $designations = $query->orderBy('name')->get();
+        // Sorting
+        $sort = $request->input('sort', 'name');
+        $direction = $request->input('direction', 'asc');
+        
+        $allowedSorts = ['id', 'name', 'department_id'];
+        if (!in_array($sort, $allowedSorts)) {
+            $sort = 'name';
+        }
+
+        $designations = $query->orderBy($sort, $direction)->paginate(10)->withQueryString();
         $departments = Department::orderBy('name')->get();
         
         return view('pages.department.designations', compact('designations', 'departments'));

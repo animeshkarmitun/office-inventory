@@ -26,7 +26,16 @@ class SupplierController extends Controller
             });
         }
 
-        $suppliers = $query->orderBy('name')->paginate(10)->appends($request->all());
+        // Sorting
+        $sort = $request->input('sort', 'name');
+        $direction = $request->input('direction', 'asc');
+        
+        $allowedSorts = ['id', 'name', 'incharge_name', 'contact_number', 'email', 'address'];
+        if (!in_array($sort, $allowedSorts)) {
+            $sort = 'name';
+        }
+
+        $suppliers = $query->orderBy($sort, $direction)->paginate(10)->withQueryString();
         return view('pages.supplier.index', compact('suppliers'));
     }
 

@@ -16,9 +16,19 @@ class UserManagementController extends Controller
         $this->middleware('role:super_admin');
     }
 
-    public function index()
+    public function index(Request $request)
     {
-        $users = User::orderBy('created_at', 'desc')->get();
+        $query = User::query();
+        
+        $sort = $request->input('sort', 'created_at');
+        $direction = $request->input('direction', 'desc');
+        
+        $allowedSorts = ['id', 'name', 'email', 'role', 'created_at'];
+        if (!in_array($sort, $allowedSorts)) {
+            $sort = 'created_at';
+        }
+
+        $users = $query->orderBy($sort, $direction)->paginate(10)->withQueryString();
         return view('pages.user-management.index', compact('users'));
     }
 

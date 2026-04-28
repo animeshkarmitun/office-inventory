@@ -15,10 +15,23 @@ class AssetMovementController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function index($itemId)
+    public function index(Request $request, $itemId)
     {
-        $item = Item::with(['movements.fromUser', 'movements.toUser', 'movements.movedBy', 'floor', 'room'])->findOrFail($itemId);
-        return view('pages.asset.movement-history', compact('item'));
+        $item = Item::with(['floor', 'room'])->findOrFail($itemId);
+        
+        $query = AssetMovement::where('item_id', $itemId)->with(['fromUser', 'toUser', 'movedBy']);
+        
+        $sort = $request->input('sort', 'created_at');
+        $direction = $request->input('direction', 'desc');
+        
+        $allowedSorts = ['id', 'movement_type', 'from_location', 'to_location', 'created_at'];
+        if (!in_array($sort, $allowedSorts)) {
+            $sort = 'created_at';
+        }
+
+        $movements = $query->orderBy($sort, $direction)->paginate(20)->withQueryString();
+        
+        return view('pages.asset.movement-history', compact('item', 'movements'));
     }
 
     /**

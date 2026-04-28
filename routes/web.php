@@ -54,6 +54,10 @@ Route::middleware('auth')->group(function () {
         
         // Designation Management
         Route::post('designation/store-ajax', [DesignationController::class, 'storeAjax'])->name('designation.storeAjax');
+
+        // Settings Management
+        Route::get('/settings', [\App\Http\Controllers\SettingController::class, 'index'])->name('settings.index');
+        Route::post('/settings', [\App\Http\Controllers\SettingController::class, 'update'])->name('settings.update');
     });
 
     // Floor Management (Super Admin & Admin)

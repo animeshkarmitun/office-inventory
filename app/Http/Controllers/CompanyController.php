@@ -8,9 +8,19 @@ use Illuminate\Http\Request;
 class CompanyController extends Controller
 {
 
-    public function index()
+    public function index(Request $request)
     {
-        $companies = Company::orderBy('name')->paginate(10);
+        $query = Company::query();
+        
+        $sort = $request->input('sort', 'name');
+        $direction = $request->input('direction', 'asc');
+        
+        $allowedSorts = ['id', 'name'];
+        if (!in_array($sort, $allowedSorts)) {
+            $sort = 'name';
+        }
+
+        $companies = $query->orderBy($sort, $direction)->paginate(10)->withQueryString();
         return view('pages.company.index', compact('companies'));
     }
 

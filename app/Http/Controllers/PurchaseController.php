@@ -25,7 +25,17 @@ class PurchaseController extends Controller
                 ->orWhereDate('purchase_date', $search);
             });
         }
-        $purchases = $query->orderBy('purchase_date', 'desc')->get();
+        
+        // Sorting
+        $sort = $request->input('sort', 'purchase_date');
+        $direction = $request->input('direction', 'desc');
+        
+        $allowedSorts = ['id', 'purchase_number', 'supplier_id', 'invoice_number', 'purchase_date', 'department_id', 'total_value'];
+        if (!in_array($sort, $allowedSorts)) {
+            $sort = 'purchase_date';
+        }
+
+        $purchases = $query->orderBy($sort, $direction)->paginate(20)->withQueryString();
         return view('pages.purchase.index', compact('purchases'));
     }
 

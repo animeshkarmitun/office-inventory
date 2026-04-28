@@ -14,9 +14,19 @@ class FloorController extends Controller
         $this->middleware('role:super_admin,admin');
     }
 
-    public function index()
+    public function index(Request $request)
     {
-        $floors = Floor::with('rooms')->orderBy('name')->get();
+        $query = Floor::withCount('rooms');
+        
+        $sort = $request->input('sort', 'name');
+        $direction = $request->input('direction', 'asc');
+        
+        $allowedSorts = ['id', 'name', 'serial_number', 'rooms_count', 'created_at'];
+        if (!in_array($sort, $allowedSorts)) {
+            $sort = 'name';
+        }
+
+        $floors = $query->orderBy($sort, $direction)->paginate(10)->withQueryString();
         return view('pages.floor.index', compact('floors'));
     }
 

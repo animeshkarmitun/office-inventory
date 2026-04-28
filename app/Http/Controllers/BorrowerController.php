@@ -10,9 +10,19 @@ use Illuminate\Http\Request;
 
 class BorrowerController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $borrowers = Borrower::orderBy('status', 'DESC')->get();
+        $query = Borrower::with(['item', 'department', 'user']);
+        
+        $sort = $request->input('sort', 'created_at');
+        $direction = $request->input('direction', 'desc');
+        
+        $allowedSorts = ['id', 'name', 'staff_id', 'created_at', 'status'];
+        if (!in_array($sort, $allowedSorts)) {
+            $sort = 'created_at';
+        }
+
+        $borrowers = $query->orderBy($sort, $direction)->paginate(10)->withQueryString();
         return view('pages.borrower.index', compact('borrowers'));
     }
 

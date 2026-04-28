@@ -15,9 +15,19 @@ class RoomController extends Controller
         $this->middleware('role:super_admin,admin');
     }
 
-    public function index()
+    public function index(Request $request)
     {
-        $rooms = Room::with('floor')->orderBy('floor_id')->orderBy('name')->get();
+        $query = Room::with('floor');
+        
+        $sort = $request->input('sort', 'name');
+        $direction = $request->input('direction', 'asc');
+        
+        $allowedSorts = ['id', 'name', 'floor_id', 'status', 'created_at'];
+        if (!in_array($sort, $allowedSorts)) {
+            $sort = 'name';
+        }
+
+        $rooms = $query->orderBy($sort, $direction)->paginate(10)->withQueryString();
         return view('pages.room.index', compact('rooms'));
     }
 

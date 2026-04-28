@@ -102,9 +102,18 @@ class ItemController extends Controller
             }
         }
 
+        // Sorting
+        $sort = $request->input('sort', 'created_at');
+        $direction = $request->input('direction', 'desc');
+        
+        $allowedSorts = ['id', 'name', 'asset_tag', 'company_id', 'status', 'is_approved', 'created_at'];
+        if (!in_array($sort, $allowedSorts)) {
+            $sort = 'created_at';
+        }
+
         $items = $query
             ->with(['assignedUser', 'approvedBy', 'supplier', 'category', 'floor', 'room', 'purchasedBy', 'receivedBy', 'purchase', 'company'])
-            ->orderBy('created_at', 'desc')
+            ->orderBy($sort, $direction)
             ->paginate(50)
             ->withQueryString();
 
@@ -523,9 +532,19 @@ class ItemController extends Controller
             ->with(['message' => 'Item is already approved', 'alert' => 'alert-warning']);
     }
 
-    public function depreciationReport()
+    public function depreciationReport(Request $request)
     {
-        $items = Item::with(['assignedUser', 'approvedBy'])->get();
+        $query = Item::with(['assignedUser', 'approvedBy', 'category', 'company']);
+        
+        $sort = $request->input('sort', 'name');
+        $direction = $request->input('direction', 'asc');
+        
+        $allowedSorts = ['id', 'name', 'value', 'status', 'created_at'];
+        if (!in_array($sort, $allowedSorts)) {
+            $sort = 'name';
+        }
+
+        $items = $query->orderBy($sort, $direction)->paginate(50)->withQueryString();
         return view('pages.item.depreciation-report', compact('items'));
     }
 
